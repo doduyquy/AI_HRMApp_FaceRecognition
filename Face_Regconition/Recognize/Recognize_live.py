@@ -4,24 +4,24 @@ import numpy as np
 import tensorflow as tf
 import imutils
 import os
+import time
 
-# Lấy đường dẫn thư mục chứa Recognize.py
+# Lấy đường dẫn thư mục chứa Recognize_live.py
+# Sử dụng đường dẫn tuyệt đối để tránh lỗi:
 current_dir = os.path.dirname(os.path.abspath(__file__))
 print(f"Đường dẫn hiện tại: {current_dir}")
 
-### Define the path to all files:
+### Định nghĩa path cho các file đầu vào:
 CASCADE_PATH = "../HaarCascade/haarcascade_frontalface_default.xml"
 PB_PATH = os.path.abspath(os.path.join(current_dir, "../../Model/20180402-114759.pb"))
 print(f"Đường dẫn mô hình: {PB_PATH}")
-DATA_DIR_PATH = os.path.abspath(os.path.join(current_dir, "../../Data"))
-print(f"Đường dẫn dữ liệu: {DATA_DIR_PATH}")
 
-# Define some constants
-THRESHOLD = 0.8
-FRAME_SKIP = 5  # Xử lý nhận diện mỗi 5 khung hình
+# Định nghĩa các thông số cho nhận diện 
+THRESHOLD = 0.8 # Ngưỡng để xác định đúng người hay không: nhỏ hơn -> đúng, lớn hơn -> sai
+FRAME_SKIP = 5  # Xử lý nhận diện mỗi 5 khung hình, để tránh lag
 BLUE_EXPAND = 10  # Số pixel mở rộng khung xanh lam
 
-# Hàm tiền xử lý ảnh cho FaceNet
+# Hàm tiền xử lý ảnh cho 
 def preprocess_image_for_model(image, target_size=(160, 160)):
     img = cv2.resize(image, target_size)
     img = img / 255.0
@@ -32,7 +32,7 @@ def preprocess_image_for_model(image, target_size=(160, 160)):
 
 # Hàm trích xuất khuôn mặt từ khung hình
 def extract_face(image, cascade_path=CASCADE_PATH):
-    img = imutils.resize(image, width=500)  # Giảm kích thước xuống 500
+    img = imutils.resize(image, width=500)  # Giảm kích thước xuống 500 tránh quá tải
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     detector = cv2.CascadeClassifier(cascade_path)
     
@@ -57,6 +57,7 @@ def load_pb_model(pb_path):
         tf.import_graph_def(graph_def, name='')
     return graph
 
+# Trích xuất đặc trưng embedding của khuô mặt
 def get_embedding_from_pb(graph, image_processed):
     with tf.compat.v1.Session(graph=graph) as sess:
         images_placeholder = graph.get_tensor_by_name('input:0')
@@ -78,7 +79,7 @@ def recognize_from_camera(threshold=THRESHOLD, frame_skip=FRAME_SKIP, blue_expan
     # Tải đặc trưng đã lưu
     embeddings_dict = np.load('embeddings.npy', allow_pickle=True).item()
     
-    # Mở camera
+    # Mở camera 
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         print("Không thể mở camera")
@@ -104,7 +105,7 @@ def recognize_from_camera(threshold=THRESHOLD, frame_skip=FRAME_SKIP, blue_expan
         if face is not None and coords is not None:
             x, y, w, h = coords
            
-           # Mở rộng khung xanh lam
+           # Mở rộng khung xanh lam để không khi đè khung xanh lá or đỏ
             blue_x = max(0, x - blue_expand)  # Đảm bảo không vượt biên trái
             blue_y = max(0, y - blue_expand)  # Đảm bảo không vượt biên trên
             blue_w = w + 2 * blue_expand  # Mở rộng chiều rộng
@@ -115,11 +116,14 @@ def recognize_from_camera(threshold=THRESHOLD, frame_skip=FRAME_SKIP, blue_expan
             
             # Vẽ khung xanh lam rộng hơn
             cv2.rectangle(processed_frame, (blue_x, blue_y), (blue_x + blue_w, blue_y + blue_h), (255, 0, 0), 2)  # Blue
-            # Khung xanh lam với rộng hơn
             # cv2.rectangle(processed_frame, (x + 10, y + 10), (x+w+10, y+h+10), (255, 0, 0), 2)  # Blue, thickness=4
             
             # Chỉ nhận diện mỗi frame_skip khung hình
             if frame_count % frame_skip == 0:
+
+                # Bắt đầu đo thời gian
+                start_time = time.time()
+
                 # Trích xuất đặc trưng và nhận diện
                 face_processed = preprocess_image_for_model(face)
                 face_embedding = get_embedding(face_processed)
@@ -147,7 +151,13 @@ def recognize_from_camera(threshold=THRESHOLD, frame_skip=FRAME_SKIP, blue_expan
                     last_label = "Unknown"
                     last_color = (0, 0, 255)  # Red
             
-            # Sử dụng nhãn và màu từ lần nhận diện trước cho các khung bị bỏ qua
+                # Kết thúc đo thời gian
+                end_time = time.time()
+                processing_time = end_time - start_time
+                # Hiển thị thời gian xử lý
+                print(f"Thời gian xử lý: {processing_time:.5f} giây")
+
+            # Đặt label lên khung đã nhận diện trước cho các khung bị bỏ qua
             cv2.putText(processed_frame, last_label, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, last_color, 2)
         
         # Hiển thị khung hình

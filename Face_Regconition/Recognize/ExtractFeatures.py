@@ -5,11 +5,11 @@ import matplotlib.pyplot as plt
 import imutils
 import os
 
-# Lấy đường dẫn thư mục chứa Recognize.py
+# Sử dụng đường dẫn tuyệt đối để tránh lỗi:
 current_dir = os.path.dirname(os.path.abspath(__file__))
 print(f"Đường dẫn hiện tại: {current_dir}")
 
-### Define the path to all files:
+### Định nghĩa path cho các file đầu vào:
 # Haar Cascade 
 CASCADE_PATH="../HaarCascade/haarcascade_frontalface_default.xml"
 
@@ -18,14 +18,16 @@ PB_PATH = os.path.abspath(os.path.join(current_dir, "../../Model/20180402-114759
 print(f"Đường dẫn mô hình: {PB_PATH}")
 # pb_path = '../../Model/20180402-114759.pb'
 
-# Data directory to extract features
+# Data path
 DATA_DIR_PATH = os.path.abspath(os.path.join(current_dir, "../../Data"))
 print(f"Đường dẫn dữ liệu: {DATA_DIR_PATH}")
 # DATA_DIR_PATH = '../../Data'
 
 
-# Define some constants
+# Định nghĩa các thông số cho nhận diện 
 THRESHOLD = 0.8
+SCALEFACTOR = 1.03
+MINNEIGHBORS = 11
 
 
 
@@ -48,8 +50,9 @@ def extract_face(image_path, cascade_path=CASCADE_PATH):
     img = imutils.resize(img, width=900)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     
-    faces = detector.detectMultiScale(gray, scaleFactor=1.09,
-                                      minNeighbors=21, minSize=(30, 30),
+    faces = detector.detectMultiScale(gray, scaleFactor=SCALEFACTOR,
+                                      minNeighbors=MINNEIGHBORS, 
+                                    #   minSize=(30, 30),
                                       flags=cv2.CASCADE_SCALE_IMAGE)
     
     if len(faces) > 0:
@@ -61,26 +64,27 @@ def extract_face(image_path, cascade_path=CASCADE_PATH):
         raise ValueError(f"Không tìm thấy khuôn mặt trong ảnh: {image_path}")
 
 # Hàm vẽ khung và ghi chú trên ảnh
-def draw_result(image_path, is_match, name="Random", cascade_path=CASCADE_PATH):
-    img = cv2.imread(image_path)
-    if img is None:
-        raise ValueError(f"Không thể đọc ảnh từ đường dẫn: {image_path}")
+# def draw_result(image_path, is_match, name="Random", cascade_path=CASCADE_PATH):
+#     img = cv2.imread(image_path)
+#     if img is None:
+#         raise ValueError(f"Không thể đọc ảnh từ đường dẫn: {image_path}")
     
-    detector = cv2.CascadeClassifier(cascade_path)
-    img = imutils.resize(img, width=900)
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+#     detector = cv2.CascadeClassifier(cascade_path)
+#     img = imutils.resize(img, width=900)
+#     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     
-    faces = detector.detectMultiScale(gray, scaleFactor=1.09,
-                                      minNeighbors=21, minSize=(30, 30),
-                                      flags=cv2.CASCADE_SCALE_IMAGE)
+#     faces = detector.detectMultiScale(gray, scaleFactor=SCALEFACTOR,
+#                                       minNeighbors=11, 
+#                                     #   minSize=(30, 30),
+#                                       flags=cv2.CASCADE_SCALE_IMAGE)
     
-    if len(faces) > 0:
-        x, y, w, h = faces[0]
-        color = (0, 255, 0) if is_match else (255, 0, 0)
-        cv2.rectangle(img, (x, y), (x+w, y+h), color, 2)
-        label = name if is_match else "Failed"
-        cv2.putText(img, label, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
-    return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+#     if len(faces) > 0:
+#         x, y, w, h = faces[0]
+#         color = (0, 255, 0) if is_match else (255, 0, 0)
+#         cv2.rectangle(img, (x, y), (x+w, y+h), color, 2)
+#         label = name if is_match else "Failed"
+#         cv2.putText(img, label, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
+#     return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
 # Tải mô hình .pb
 def load_pb_model(pb_path):
