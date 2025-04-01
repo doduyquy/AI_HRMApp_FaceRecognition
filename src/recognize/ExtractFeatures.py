@@ -4,31 +4,42 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import imutils
 import os
+import sys
+from pathlib import Path
 
-# Sử dụng đường dẫn tuyệt đối để tránh lỗi:
-current_dir = os.path.dirname(os.path.abspath(__file__))
-print(f"Đường dẫn hiện tại: {current_dir}")
+# Thêm thư mục src vào sys.path
+src_dir = str(Path(__file__).resolve().parent.parent)  # Lên 2 cấp để tới src
+if src_dir not in sys.path:
+    sys.path.append(src_dir)
+
+# Custom module
+from modules import path_cus
+from modules import constants_cus
+
 
 ### Định nghĩa path cho các file đầu vào:
 # Haar Cascade 
-CASCADE_PATH = os.path.abspath(os.path.join(current_dir, "../models/haarcascade_frontalface_default.xml"))
+CASCADE_PATH = path_cus.CASCADE_PATH
+# CASCADE_PATH = os.path.abspath(os.path.join(current_dir, "../models/haarcascade_frontalface_default.xml"))
 print("Đường đẫn haarcascade: ", CASCADE_PATH)
 
 # Model.pb path
-PB_PATH = os.path.abspath(os.path.join(current_dir, "../models/20180402-114759.pb"))
+PB_PATH = path_cus.PB_PATH
+# PB_PATH = os.path.abspath(os.path.join(current_dir, "../models/20180402-114759.pb"))
 print(f"Đường dẫn mô hình: {PB_PATH}")
 
 # Data path
-DATA_DIR_PATH = os.path.abspath(os.path.join(current_dir, "../../Data"))
-# DATA_DIR_PATH = "/home/nii/Documents/FaceRecognition/Data"
+DATA_DIR_PATH = path_cus.DATA_DIR_PATH
+# DATA_DIR_PATH = os.path.abspath(os.path.join(current_dir, "../../Data"))
 print(f"Đường dẫn dữ liệu: {DATA_DIR_PATH}")
 
-EMBEDDING_PATH = os.path.abspath(os.path.join(current_dir, "../models/embeddings.npy"))
+EMBEDDING_PATH = path_cus.EMBEDDING_PATH
+# EMBEDDING_PATH = os.path.abspath(os.path.join(current_dir, "../models/embeddings.npy"))
 
 # Định nghĩa các thông số cho nhận diện 
-THRESHOLD = 0.8
-SCALEFACTOR = 1.03
-MINNEIGHBORS = 11
+THRESHOLD = constants_cus.THRESHOLD
+SCALEFACTOR = constants_cus.SCALEFACTOR
+MINNEIGHBORS = constants_cus.MINNEIGHBORS
 
 
 

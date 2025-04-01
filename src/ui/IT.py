@@ -3,6 +3,17 @@ from tkinter import ttk, messagebox
 import mysql.connector
 from PIL import Image, ImageTk, ImageDraw
 import os
+import sys
+from pathlib import Path
+
+# Thêm thư mục src vào sys.path
+src_dir = str(Path(__file__).resolve().parent.parent)  # Lên 2 cấp để tới src
+if src_dir not in sys.path:
+    sys.path.append(src_dir)
+
+# Custom module
+from modules import database_cus
+
 
 class ITApp:
     def __init__(self, root):
@@ -151,7 +162,11 @@ class ITApp:
         for item in self.tree.get_children():
             self.tree.delete(item)
         try:
-            conn = mysql.connector.connect(host="localhost", user="root", password="12345678", database="Face_Recognition")
+            # conn = mysql.connector.connect(host="localhost", user="root", password="12345678", database="Face_Recognition")
+            conn = database_cus.connectDatabase()
+            if conn is None:
+                messagebox.showerror("Lỗi kết nối", "Không thể kết nối đến cơ sở dữ liệu.")
+                return
             cursor = conn.cursor(dictionary=True)
             query = """
                 SELECT e.emp_id, e.last_name, e.first_name, e.email, e.status, r.role_name

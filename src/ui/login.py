@@ -2,10 +2,22 @@ import tkinter as tk
 from tkinter import messagebox, PhotoImage
 from PIL import Image, ImageTk
 import os
+import sys
+from pathlib import Path
 import mysql.connector
 import information 
 import IT 
 import manager
+
+# Thêm thư mục src vào sys.path
+src_dir = str(Path(__file__).resolve().parent.parent)  # Lên 2 cấp để tới src
+if src_dir not in sys.path:
+    sys.path.append(src_dir)
+
+# Custom module
+from modules import database_cus
+
+
 
 # Tạo cửa sổ chính
 root = tk.Tk()
@@ -75,13 +87,16 @@ def signin():
 
     # Database
     try:
-        conn = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="",
-            # password="12345678",
-            database="Face_Recognition"
-        )
+        # conn = mysql.connector.connect(
+        #     host="localhost",
+        #     user="nii",
+        #     password="12345678",
+        #     database="Face_Recognition"
+        # )
+        conn = database_cus.connectDatabase()
+        if conn is None:
+            messagebox.showerror("Lỗi kết nối", "Không thể kết nối đến cơ sở dữ liệu.")
+            return
         cursor = conn.cursor()
 
         # Truy vấn kiểm tra nhân viên có tồn tại không
