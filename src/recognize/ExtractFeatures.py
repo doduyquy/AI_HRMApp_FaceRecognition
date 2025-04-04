@@ -129,24 +129,24 @@ embeddings_dict = {}
 print("Trích xuất đặc trưng từ tất cả ảnh trong thư mục...")
 for img_file in os.listdir(DATA_DIR_PATH):
     if img_file.endswith('.jpg') and '_' in img_file:
-        name = img_file.split('_')[0]  # Lấy tên người từ tên file
+        id = img_file.split('_')[0]  # Lấy tên người từ tên file
         img_path = os.path.join(DATA_DIR_PATH, img_file)
         try:
             face = extract_face(img_path)
             face_processed = preprocess_image_for_model(face)
             embedding = get_embedding(face_processed)
             # Lưu đặc trưng theo tên người (trung bình nếu có nhiều ảnh)
-            if name in embeddings_dict:
-                embeddings_dict[name].append(embedding)
+            if id in embeddings_dict:
+                embeddings_dict[id].append(embedding)
             else:
-                embeddings_dict[name] = [embedding]
+                embeddings_dict[id] = [embedding]
             print(f"Đã trích xuất đặc trưng cho {img_file}")
         except ValueError as e:
             print(e)
 
 # Tính trung bình đặc trưng cho mỗi người
-for name in embeddings_dict:
-    embeddings_dict[name] = np.mean(embeddings_dict[name], axis=0)
+for id in embeddings_dict:
+    embeddings_dict[id] = np.mean(embeddings_dict[id], axis=0)
 
 # Lưu đặc trưng vào file
 np.save(EMBEDDING_PATH, embeddings_dict)
