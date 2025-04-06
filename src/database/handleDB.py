@@ -133,10 +133,58 @@ class DatabaseHandler:
             })
         return attendance_list
 
+    ### Import from EXCEL ###
+    def import_employees(self, employees_data):
+        # Nhập danh sách nhân viên vào bảng Employees
+        #    employees_data: list các dict chứa thông tin nhân viên, với đầy đủ các fields
+        try:
+            for employee in employees_data:
+                ### Kiểm tra định dạng ngày tháng cho hired_date
+                # if employee['hired_date'] and isinstance(employee['hired_date'], str):
+                #     try:
+                #         employee['hired_date'] = datetime.strptime(employee['hired_date'], "%Y-%m-%d").date()
+                #     except ValueError:
+                #         print(f"Định dạng ngày 'hired_date' không hợp lệ cho email {employee['email']}, để null")
+                #         employee['hired_date'] = None
+
+                query = """
+                    INSERT INTO Employees (last_name, first_name, dep_id, email, phone_number, hired_date, position, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                        last_name = VALUES(last_name),
+                        first_name = VALUES(first_name),
+                        dep_id = VALUES(dep_id),
+                        phone_number = VALUES(phone_number),
+                        hired_date = VALUES(hired_date),
+                        position = VALUES(position),
+                        status = VALUES(status)
+                """
+                values = (
+                    employee['last_name'],
+                    employee['first_name'],
+                    employee['dep_id'],
+                    employee['email'],
+                    employee['phone_number'],
+                    employee['hired_date'],
+                    employee['position'],
+                    employee['status']
+                )
+
+                self.cursor.execute(query, values)
+
+            # Commit giao dịch
+            self.conn.commit()
+            print("Đã nhập dữ liệu nhân viên thành công!")
+
+        except mysql.connector.Error as err:
+            print(f"Lỗi khi nhập dữ liệu: {err}")
+            self.conn.rollback()
+            raise
+
+
     def testing(self):
         """Hàm kiểm tra"""
         print("In handleDB testing...")
-
     def close(self):
         """Đóng kết nối database"""
         self.cursor.close()
