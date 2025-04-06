@@ -7,8 +7,9 @@ class DatabaseHandler:
         try:
             self.conn = mysql.connector.connect(
                 host='localhost',
-                user='nii',  # Thay bằng user của bạn
-                password='12345678',  # Thay bằng password của bạn
+                user='nii',  
+                # user='root',  
+                password='12345678',  
                 database='Face_Recognition'
             )
             if self.conn.is_connected():
@@ -86,6 +87,52 @@ class DatabaseHandler:
         self.cursor.execute(query, (check_out_time, check_out_time, emp_id, date))
         self.conn.commit()
 
+    ### RECOGNIZE UI ###
+    # Thêm phương thức mới để lấy tất cả bản ghi chấm công
+    def get_all_attendance(self):
+        self.cursor.execute('''
+            SELECT * FROM Attendance
+            ORDER BY attendance_id DESC
+        ''')
+        results = self.cursor.fetchall()
+        attendance_list = []
+        for result in results:
+            attendance_list.append({
+                'attendance_id': result['attendance_id'],
+                'emp_id': result['emp_id'],
+                'check_in': result['check_in'],
+                'check_out': result['check_out'],
+                'date': result['date'],
+                'work_hours': result['work_hours'],
+                'overtime_hours': result['overtime_hours']
+            })
+        return attendance_list
+    
+    """Lấy danh sách chấm công của một ngày cụ thể, mặc định là ngày hiện tại"""
+    def get_attendance_by_date(self, date=None):
+        if date is None:
+            date = datetime.now().date()
+        
+        query = """
+            SELECT * FROM Attendance
+            WHERE date = %s
+            ORDER BY attendance_id DESC
+        """
+        self.cursor.execute(query, (date,))
+        results = self.cursor.fetchall()
+        attendance_list = []
+        for result in results:
+            attendance_list.append({
+                'attendance_id': result['attendance_id'],
+                'emp_id': result['emp_id'],
+                'check_in': result['check_in'],
+                'check_out': result['check_out'],
+                'date': result['date'],
+                'work_hours': result['work_hours'],
+                'overtime_hours': result['overtime_hours']
+            })
+        return attendance_list
+
     def testing(self):
         """Hàm kiểm tra"""
         print("In handleDB testing...")
@@ -98,6 +145,10 @@ class DatabaseHandler:
 # Khởi tạo đối tượng
 handle = DatabaseHandler()
 # print(handle.get_last_attendance("1"))
+
+
+
+
 
 
 # Hàm kết nối cơ sở dữ liệu

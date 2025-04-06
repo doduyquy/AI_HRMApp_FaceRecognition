@@ -13,6 +13,20 @@
             "database": "Face_Recognition",
             "username": "nii",
             "password": ""
+        },
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 3306,
+            "driver": "MySQL",
+            "name": "DB_Python_Oke",
+            "database": "Face_Recognition",
+            "username": "nii",
+            "askForPassword": true
         }
     ]
 }

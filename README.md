@@ -3,4 +3,4 @@ Project Python about Human Resource Manager(HRM) using face_recognition for time
 
 ### Cấu trúc:
 - src/models/...    :   lưu các models, haar, features.npy
-- src/modules/...   :   lưu các module dùng chung như path, constants, connect to database,... (path custom- path_cus)
+- src/modules/...   :   lưu các module dùng chung như path, constants,(path custom- path_cus)

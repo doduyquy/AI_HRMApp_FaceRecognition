@@ -30,7 +30,8 @@ class HRMApp:
         try:
             self.conn = mysql.connector.connect(
                 host="localhost",
-                user="root",
+                user="nii",
+                # user="root",
                 password="12345678",
                 database="Face_Recognition"
             )
@@ -351,5 +352,5 @@ def main(emp_id=""):
     app = HRMApp(root, emp_id)
     root.mainloop()
 
-# if __name__ == "__main__":
-#     main(1)
+if __name__ == "__main__":
+    main(1)
