@@ -2,22 +2,10 @@ import tkinter as tk
 from tkinter import messagebox, PhotoImage
 from PIL import Image, ImageTk
 import os
-import sys
-from pathlib import Path
 import mysql.connector
-import information 
+import employee 
 import IT 
 import manager
-
-# Thêm thư mục src vào sys.path
-src_dir = str(Path(__file__).resolve().parent.parent)  # Lên 2 cấp để tới src
-if src_dir not in sys.path:
-    sys.path.append(src_dir)
-
-# Custom module
-from modules import database_cus
-
-
 
 # Tạo cửa sổ chính
 root = tk.Tk()
@@ -26,7 +14,7 @@ root.geometry('925x500+200+100')
 root.configure(bg="#fff")
 root.resizable(False, False)
 
-# Đăng nhập
+# Hàm đăng nhập
 def signin():
     emp_id = user.get()
     password_input = code.get()
@@ -87,28 +75,25 @@ def signin():
 
     # Database
     try:
-        # conn = mysql.connector.connect(
-        #     host="localhost",
-        #     user="nii",
-        #     password="12345678",
-        #     database="Face_Recognition"
-        # )
-        conn = database_cus.connectDatabase()
-        if conn is None:
-            messagebox.showerror("Lỗi kết nối", "Không thể kết nối đến cơ sở dữ liệu.")
-            return
+        conn = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="12345678",
+            database="Face_Recognition"
+        )
         cursor = conn.cursor()
 
-        # Truy vấn kiểm tra nhân viên có tồn tại không
-        cursor.execute("SELECT emp_id, first_name, last_name FROM Employees WHERE emp_id = %s", (emp_id,))
+        # Ktra trạng thái của nv
+        cursor.execute("SELECT emp_id, first_name, last_name, status FROM Employees WHERE emp_id = %s", (emp_id,))
         result = cursor.fetchone()
 
         if result:
-            if password_input == default_password:
-                first_name = result[1]
-                last_name = result[2]
+            emp_id_db, first_name, last_name, status = result
+            if status == "Đã nghỉ": 
+                messagebox.showerror("Lỗi", "Tài khoản của bạn đã khóa, bạn không thể đăng nhập!")
+            elif password_input == default_password:
                 full_name = f"{last_name} {first_name}"
-                show_welcome_screen(full_name, lambda: information.main(emp_id))
+                show_welcome_screen(full_name, lambda: employee.main(emp_id))
             else:
                 messagebox.showerror("Lỗi", "Mật khẩu không đúng")
         else:
@@ -120,18 +105,18 @@ def signin():
     except mysql.connector.Error as e:
         messagebox.showerror("Lỗi kết nối", f"Lỗi MySQL: {e}")
 
-# Load hình ảnh giao diện đăng nhập
+# Load hình ảnh giao diện
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 img_path = os.path.join(BASE_DIR, "..", "img", "login.png")
-img = Image.open(img_path).resize((400, 300))
+img = Image.open(img_path).resize((450, 400))
 img = ImageTk.PhotoImage(img)
 tk.Label(root, image=img, bg='white').place(x=50, y=50)
 
-# Khung chứa thông tin đăng nhập
+# Khung chứa thông tin
 f = tk.Frame(root, width=400, height=350, bg='white')
 f.place(x=480, y=70)
 heading = tk.Label(f, text='Đăng Nhập', fg='#57a1f8', bg='white', font=('Times New Roman', 23, 'bold'))
-heading.place(x=100, y=5)
+heading.place(x=130, y=0)
 
 # Nhập tên đăng nhập
 def on_enter(e):
@@ -143,38 +128,42 @@ def on_leave(e):
         user.insert(0, 'Tên đăng nhập')
 
 user = tk.Entry(f, width=25, fg='black', border=0, bg='white', font=('Times New Roman', 11))
-user.place(x=30, y=80)
+user.place(x=60, y=85)
 user.insert(0, 'Tên đăng nhập')
 user.bind('<FocusIn>', on_enter)
 user.bind('<FocusOut>', on_leave)
 user.bind('<Return>', lambda e: code.focus_set())
 
-tk.Frame(f, width=295, height=2, bg='black').place(x=25, y=107)
+tk.Frame(f, width=330, height=2, bg='black', border=1).place(x=50, y=110)
 
 # Nhập mật khẩu
 def on_enter(e):
     if code.get() == "Mật khẩu":
         code.delete(0, 'end')
+        code.config(show="*")
 
 def on_leave(e):
     if code.get() == '':
         code.insert(0, 'Mật khẩu')
+        code.config(show="") 
 
+# Tạo Entry không ẩn mặc định
 code = tk.Entry(f, width=25, fg='black', border=0, bg='white', font=('Times New Roman', 11))
-code.place(x=30, y=150)
+code.place(x=60, y=165)
 code.insert(0, 'Mật khẩu')
 code.bind('<FocusIn>', on_enter)
 code.bind('<FocusOut>', on_leave)
 code.bind('<Return>', lambda e: signin())
 
 # Ẩn/Hiện mật khẩu
-button_mode = True
+button_mode = False
 
 def hide():
     global button_mode
     if button_mode:
         eyeButton.config(image=closeeye, activebackground="white")
-        code.config(show="*")
+        if code.get() != "Mật khẩu":
+            code.config(show="*")
         button_mode = False
     else:
         eyeButton.config(image=openeye, activebackground="white")
@@ -184,12 +173,13 @@ def hide():
 openeye = PhotoImage(file=os.path.join(BASE_DIR, "..", "img", "openeye.png"))
 closeeye = PhotoImage(file=os.path.join(BASE_DIR, "..", "img", "closeeye.png"))
 
-eyeButton = tk.Button(f, image=openeye, bd=0, bg="#fff", command=hide)
-eyeButton.place(x=295, y=150)
+# Ban đầu với closeeye
+eyeButton = tk.Button(f, image=closeeye, bd=0, bg="#fff", command=hide)
+eyeButton.place(x=350, y=160)
 
-tk.Frame(f, width=295, height=2, bg='black').place(x=25, y=177)
+tk.Frame(f, width=330, height=2, bg='black', border=1).place(x=50, y=190)
 
 # Nút đăng nhập
-tk.Button(f, width=39, pady=7, text='Đăng Nhập', bg='#57a1f8', fg='white', border=0, command=signin).place(x=35, y=204)
+tk.Button(f, width=39, pady=7, text='Đăng Nhập', bg='#57a1f8', fg='white', font=('Times New Roman', 12), border=0, command=signin).place(x=35, y=240)
 
 root.mainloop()
