@@ -3,10 +3,18 @@ from tkinter import ttk, messagebox, PhotoImage
 import mysql.connector
 from PIL import Image, ImageTk, ImageDraw
 import os
+import sys
 import re
 from datetime import datetime
 from tkcalendar import DateEntry
+from pathlib import Path
 
+# Thêm thư mục src vào sys.path
+src_dir = str(Path(__file__).resolve().parent.parent.parent)  # Lên 3 cấp để tới src
+if src_dir not in sys.path:
+    sys.path.append(src_dir)
+
+from src.modules.excel.export import ExportToExcel  # Import class ExportToExcel từ file export.py  
 
 class ManagerApp:
     def __init__(self, root):
@@ -117,6 +125,7 @@ class ManagerApp:
         self.content_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=10)
 
         self.on_menu_click("Nhân Sự")
+
 
     # Xử lý sự kiện nhấn menu
     def on_menu_click(self, option):
@@ -1022,7 +1031,13 @@ class ManagerApp:
     
     # Excel
     def export_to_excel(self):
-        messagebox.showinfo("Thông báo", "Chức năng xuất Excel đang được phát triển!")
+        try:
+            excel = ExportToExcel(self.tree)
+            excel.export()
+            messagebox.showinfo("Thông báo", "Xuất Excel thành công!")
+        except Exception as e:
+            messagebox.showerror("Lỗi", f"Có lỗi xảy ra khi xuất Excel: {str(e)}")
+        # messagebox.showinfo("Thông báo", "Chức năng xuất Excel đang được phát triển!")
 
     # Tìm kiếm
     def search_employee(self, event=None):
