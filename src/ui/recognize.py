@@ -69,7 +69,7 @@ class UI_FaceRecognition:
             width=camera_width,
             height=remaining_height
         )
-        self.camera_frame.pack(side="left", fill="none", expand=False, padx=(20, 0))  # Thêm padx=20 bên trái
+        self.camera_frame.pack(side="left", fill="none", expand=False, padx=(10, 0))  # Thêm padx=20 bên trái
         self.camera_frame.pack_propagate(False)
 
         self.camera_label = tk.Label(self.camera_frame, bg="gray")

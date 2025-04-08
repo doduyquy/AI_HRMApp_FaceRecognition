@@ -5,6 +5,7 @@ import imutils
 import time
 import sys
 from pathlib import Path
+from PIL import Image, ImageDraw, ImageFont 
 
 # Thêm thư mục src vào sys.path
 src_dir = str(Path(__file__).resolve().parent.parent.parent)  # Lên 3 cấp để tới src
@@ -12,6 +13,7 @@ if src_dir not in sys.path:
     sys.path.append(src_dir)
 
 # Custom modules
+from database import handleDB
 from modules.path_cus import CASCADE_PATH, PB_PATH, EMBEDDING_PATH
 from modules.constants_cus import THRESHOLD, FRAME_SKIP, BLUE_EXPAND, MIN_CHECKOUT_DELAY
 from modules.recognize.image_processing import preprocess_image_for_model
@@ -149,11 +151,13 @@ def recognize_from_camera(ui, threshold=THRESHOLD, frame_skip=FRAME_SKIP, blue_e
                 # Duyệt qua danh sách các embedding đã lưu
                 # Tính khoảng cách giữa embedding_current - embedding_stored
                 # Lưu lại tên người có khoảng cách nhỏ nhất
-                for name, stored_embedding in embeddings_dict.items():
+                for id, stored_embedding in embeddings_dict.items():
                     distance = np.sqrt(np.sum(np.square(face_embedding - stored_embedding)))
                     if distance < min_distance:
                         min_distance = distance
-                        best_match_name = name
+                        best_match_id = id
+                # Best match name: id_name
+                best_match_name = f"{handleDB.handle.get_name_by_id(best_match_id)}" 
                 
                 # threshold: NGƯỠNG đã set từ trước
                 # Nhỏ hơn threshold: nhận diện thành công
@@ -163,14 +167,14 @@ def recognize_from_camera(ui, threshold=THRESHOLD, frame_skip=FRAME_SKIP, blue_e
                     try:
                         # Vẽ khung green
                         cv2.rectangle(processed_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-                        last_label = best_match_name
+                        last_label = f"{best_match_id}-{best_match_name}"
                         last_color = (0, 255, 0)
 
                         # Cập nhật kết quả nhận diện trên giao diện
                         ui.set_recognition_result(f"{best_match_name} nhan dien thanh cong", success_recog=True, success_attend=False)
 
                         # Goij hàm attendance để xử lí chấm công
-                        result, mess = attendance(ui, best_match_name)
+                        result, mess = attendance(ui, best_match_id, best_match_name)
                         if result:
                             ui.set_recognition_result(mess, success_recog=True, success_attend=True)
                         else:
@@ -193,9 +197,33 @@ def recognize_from_camera(ui, threshold=THRESHOLD, frame_skip=FRAME_SKIP, blue_e
                 processing_time = end_time - start_time
                 print(f"Thời gian xử lý: {processing_time:.5f} giây")
 
-            # Đặt label lên khung
-            cv2.putText(processed_frame, last_label, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, last_color, 2)
-        
+            # # Đặt label lên khung
+            # cv2.putText(processed_frame, last_label, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, last_color, 2)
+            
+            # Đặt label lên khung bằng PIL để hỗ trợ Tiếng Việt
+            # Chuyển từ BGR sang RGB
+            frame_rgb = cv2.cvtColor(processed_frame, cv2.COLOR_BGR2RGB)
+            pil_image = Image.fromarray(frame_rgb)
+            draw = ImageDraw.Draw(pil_image)
+            
+            # Load font hỗ trợ Tiếng Việt
+            try:
+                font = ImageFont.truetype("arial.ttf", 25)  # Kích thước font 25
+            except:
+                font = ImageFont.load_default()  # Dùng font mặc định nếu không tìm thấy
+            
+            # Tính toán vị trí text nằm phía trên khung xanh
+            text_x = blue_x  # Căn lề trái với khung xanh
+            text_y = blue_y - 30  # Đặt text phía trên khung xanh, cách 30 pixel (điều chỉnh nếu cần)
+            if text_y < 0:  # Đảm bảo text không bị cắt ra khỏi khung hình
+                text_y = 0
+
+            # Vẽ văn bản lên ảnh (chuyển màu từ BGR sang RGB)
+            draw.text((text_x, text_y), last_label, font=font, fill=(last_color[2], last_color[1], last_color[0], 255))
+            
+            # Chuyển lại từ RGB sang BGR
+            processed_frame = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
+
         # Cập nhật khung hình lên giao diện
         ui.update_camera_frame(processed_frame)
 
