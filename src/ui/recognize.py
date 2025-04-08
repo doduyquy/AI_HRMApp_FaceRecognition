@@ -5,6 +5,16 @@ import time
 import threading
 import cv2
 from PIL import Image, ImageTk
+import sys
+from datetime import datetime
+from pathlib import Path
+
+# Thêm thư mục src vào sys.path
+src_dir = str(Path(__file__).resolve().parent.parent.parent)  # Lên 3 cấp để tới src
+if src_dir not in sys.path:
+    sys.path.append(src_dir)
+
+# Custom modules
 from database import handleDB 
 
 class UI_FaceRecognition:
@@ -148,8 +158,8 @@ class UI_FaceRecognition:
 
         self.tree.heading("STT", text="STT")
         self.tree.heading("MSNV", text="MSNV")
-        self.tree.heading("Ten", text="Ten")
-        self.tree.heading("Vao", text="Vao")
+        self.tree.heading("Ten", text="Tên")
+        self.tree.heading("Vao", text="Vào")
         self.tree.heading("Ra", text="Ra")
 
         self.tree.column("STT", width=int(right_width * 0.1), anchor="center")
@@ -207,7 +217,7 @@ class UI_FaceRecognition:
             self.tree.insert("", "end", values=(
                 self.stt_counter,
                 f"NV{emp_id:03d}",
-                str(emp_id),
+                f"{handleDB.handle.get_name_by_id(emp_id)}",
                 check_in,
                 check_out
             ))

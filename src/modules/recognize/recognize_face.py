@@ -171,10 +171,12 @@ def recognize_from_camera(ui, threshold=THRESHOLD, frame_skip=FRAME_SKIP, blue_e
                         last_color = (0, 255, 0)
 
                         # Cập nhật kết quả nhận diện trên giao diện
-                        ui.set_recognition_result(f"{best_match_name} nhan dien thanh cong", success_recog=True, success_attend=False)
+                        ui.set_recognition_result(f"{best_match_id}-{best_match_name} nhan dien thanh cong", success_recog=True, success_attend=False)
 
                         # Goij hàm attendance để xử lí chấm công
                         result, mess = attendance(ui, best_match_id, best_match_name)
+                        print(f"Attendance result: {result}, message: {mess}")
+                        # Cập nhật kết quả chấm công trên giao diện
                         if result:
                             ui.set_recognition_result(mess, success_recog=True, success_attend=True)
                         else:
