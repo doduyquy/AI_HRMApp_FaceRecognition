@@ -4,6 +4,11 @@ from tkinter import messagebox
 from PIL import Image, ImageTk
 import os
 import mysql.connector
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+import src.salary.excel_utils
+import src.salary.salary
+import threading
 
 class HRMApp:
     def __init__(self, root, emp_id):
@@ -20,11 +25,12 @@ class HRMApp:
         self.conn = None
         self.cursor = None
 
-        self.setup_database()
+        self.connect_db()
+        self.get_employee_data(emp_id)
         self.load_data()
         self.create_ui()
 
-    def setup_database(self):
+    def connect_db(self):
         try:
             self.conn = mysql.connector.connect(
                 host="localhost",
@@ -34,70 +40,65 @@ class HRMApp:
             )
             self.cursor = self.conn.cursor(dictionary=True)
         except mysql.connector.Error as err:
-            messagebox.showerror("Database Error", f"Không kết nối được: {err}")
+            messagebox.showerror("Lỗi CSDL", f"Lỗi kết nối MySQL: {err}")
+
+    def get_employee_data(self, emp_id):
+        if not self.conn or not self.cursor:
+            return
+        try:
+            self.cursor.execute("SELECT * FROM Employees WHERE emp_id = %s", (emp_id,))
+            self.employee = self.cursor.fetchone()
+            if not self.employee:
+                print(f"Không tìm thấy nhân viên với emp_id: {self.emp_id}")
+        except mysql.connector.Error as err:
+            messagebox.showerror("Lỗi CSDL", f"Lỗi MySQL: {err}")
 
     def load_data(self):
         if not self.conn or not self.cursor:
             return
         try:
-            # Tải danh sách phòng ban từ bảng Departments
             self.cursor.execute("SELECT dep_id, dep_name FROM Departments")
             result = self.cursor.fetchall()
             for row in result:
                 self.departments[row['dep_id']] = row['dep_name']
-            
-            # Tải thông tin nhân viên từ bảng Employees
-            self.cursor.execute("SELECT * FROM Employees WHERE emp_id = %s", (self.emp_id,))
-            self.employee = self.cursor.fetchone()
-            if not self.employee:
-                print(f"Không tìm thấy nhân viên với emp_id: {self.emp_id}")
         except mysql.connector.Error as err:
             messagebox.showerror("Database Error", f"Lỗi: {err}")
 
     def create_ui(self):
-        # Tạo sidebar
         self.sidebar = tk.Frame(self.root, width=250, bg="#e9f4f5")
         self.sidebar.pack(side=tk.LEFT, fill=tk.Y)
         self.sidebar.pack_propagate(False)
 
-        # Tạo khung chính
         self.main_f = tk.Frame(self.root, bg="#fff")
         self.main_f.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-        # Tạo sidebar
         self.create_sidebar_content()
 
-        # Tạo khu vực nội dung chính
         self.content_area = tk.Frame(self.main_f, bg="#fff")
         self.content_area.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
 
         self.on_menu_click("Hồ sơ")
 
     def create_sidebar_content(self):
-        # Khung logo
         logo_f = tk.Frame(self.sidebar, bg="#e9f4f5", height=60)
         logo_f.pack(fill=tk.X)
         logo_l = tk.Label(logo_f, 
-                              text="PYTECH", 
-                              font=("Times New Roman", 20, "bold"), 
-                              bg="#e9f4f5", 
-                              fg="#0276f7")
+                          text="PYTECH", 
+                          font=("Times New Roman", 20, "bold"), 
+                          bg="#e9f4f5", 
+                          fg="#0276f7")
         logo_l.pack(pady=10)
 
-        # Khung ảnh và thông tin nhân viên
         profile_f = tk.Frame(self.sidebar, bg="#e9f4f5")
         profile_f.pack(fill=tk.X)
 
-        # Đường dẫn thư mục Data
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
         data_f = os.path.join(BASE_DIR, "..", "..", "Data")
         img_path = self.get_employee_image(data_f)
 
-        # Tạo avatar 
         avatar_l = self.create_avatar(profile_f, img_path)
         avatar_l.pack(pady=10)
 
-        # Hiển thị tên và chức vụ
         if self.employee:
             full_name = f"{self.employee['last_name']} {self.employee['first_name']}"
             position = self.employee['position']
@@ -106,28 +107,25 @@ class HRMApp:
             position = "Chức vụ"
         
         name_l = tk.Label(profile_f, 
-                              text=full_name, 
-                              font=("Times New Roman", 14, "bold"), 
-                              fg="#000", 
-                              bg="#e9f4f5")
+                          text=full_name, 
+                          font=("Times New Roman", 14, "bold"), 
+                          fg="#000", 
+                          bg="#e9f4f5")
         name_l.pack()
         
         position_l = tk.Label(profile_f, 
-                                  text=position, 
-                                  font=("Times New Roman", 12), 
-                                  fg="#4a4949", 
-                                  bg="#e9f4f5")
+                              text=position, 
+                              font=("Times New Roman", 12), 
+                              fg="#4a4949", 
+                              bg="#e9f4f5")
         position_l.pack()
 
-        # Dòng phân cách
         separator = tk.Frame(self.sidebar, height=1, bg="#2d82b5")
         separator.pack(fill=tk.X, padx=20, pady=3)
 
-        # Khung menu
         menu_f = tk.Frame(self.sidebar, bg="#e9f4f5")
         menu_f.pack(fill=tk.BOTH, expand=True, pady=10)
 
-        # Danh sách mục menu
         menu_items = [
             ("Hồ sơ", "profile.png"),
             ("Chấm công", "check.png"),
@@ -135,7 +133,6 @@ class HRMApp:
             ("Đăng xuất", "logout.png")
         ]
 
-        # Tạo các nút menu
         for item, icon_name in menu_items:
             btn_frame = tk.Frame(menu_f, bg="#e9f4f5", width=250, height=50)
             btn_frame.pack(fill=tk.X, pady=5)
@@ -199,17 +196,14 @@ class HRMApp:
         return None
 
     def on_menu_click(self, option):
-        # Thay đổi màu nút được chọn
         if self.select_btn:
             self.select_btn.config(bg="#e9f4f5")
         self.select_btn = self.menu_btn[option]
         self.select_btn.config(bg="#a6dcef")
 
-        # Xóa nội dung cũ trong content_area
         for widget in self.content_area.winfo_children():
             widget.destroy()
 
-        # Hiển thị nội dung tương ứng
         if option == "Hồ sơ":
             self.show_profile()
         elif option == "Chấm công":
@@ -217,17 +211,17 @@ class HRMApp:
         elif option == "Xem bảng lương":
             self.show_salary()
         elif option == "Đăng xuất":
-            self.logout()
+            self.signin()
 
     def show_profile(self):
         profile_f = tk.Frame(self.content_area, bg="#fff")
         profile_f.pack(fill=tk.BOTH, expand=True)
 
         title_l = tk.Label(profile_f, 
-                               text="Thông tin cá nhân", 
-                               font=("Times New Roman", 18, "bold"), 
-                               fg="#3b3939", 
-                               bg="#fff")
+                           text="Thông tin cá nhân", 
+                           font=("Times New Roman", 18, "bold"), 
+                           fg="#3b3939", 
+                           bg="#fff")
         title_l.pack(side=tk.TOP, fill=tk.X, pady=(40, 20))
 
         section_f = tk.Frame(profile_f, bg="#fff")
@@ -235,18 +229,31 @@ class HRMApp:
         section_f.grid_columnconfigure(0, weight=3)
         section_f.grid_columnconfigure(1, weight=2)
 
-        # Phần thông tin chi tiết
         left_s = tk.Frame(section_f, bg="#fff")
         left_s.grid(row=0, column=0, sticky="nsew", padx=(0, 20))
 
+        if self.employee:
+            full_name = f"{self.employee.get('last_name', '')} {self.employee.get('first_name', '')}"
+            emp_id = self.employee.get("emp_id", "Không có dữ liệu")
+            email = self.employee.get("email", "Không có dữ liệu")
+            phone_number = self.employee.get("phone_number", "Không có dữ liệu")
+            hired_date = self.employee.get("hired_date", "Không có dữ liệu")
+            status = self.employee.get("status", "Không có dữ liệu")
+        else:
+            full_name = "Không có dữ liệu"
+            emp_id = "Không xác định"
+            email = "Không xác định"
+            phone_number = "Không xác định"
+            hired_date = "Không xác định"
+            status = "Không xác định"
+
         fields = [
-            ("Họ và tên", f"{self.employee.get('last_name', 'N/A')} {self.employee.get('first_name', 'N/A')}"),
-            ("Mã nhân viên", self.employee.get('emp_id', 'N/A')),
-            ("Email", self.employee.get('email', 'N/A')),
-            ("Số điện thoại", self.employee.get('phone_number', 'N/A')),
-            ("Chức vụ", self.employee.get('position', 'N/A')),
-            ("Phòng ban", self.departments.get(self.employee.get('dep_id'), 'N/A') if self.employee else 'N/A'),
-            ("Ngày làm việc", self.employee.get('hired_date', 'N/A'))
+            ("Tên nhân viên", full_name),
+            ("Mã nhân viên", emp_id),
+            ("Email", email),
+            ("Số điện thoại", phone_number),
+            ("Ngày làm việc", hired_date),
+            ("Trạng thái", status)
         ]
 
         details_f = tk.Frame(left_s, bg="#fff")
@@ -264,25 +271,24 @@ class HRMApp:
             label.grid(row=row*2, column=column, sticky="w", padx=10, pady=(10, 0))
 
             value_f = tk.Frame(details_f, 
-                                   bg="#f9f9f9", 
-                                   bd=1, 
-                                   relief="solid")
+                               bg="#f9f9f9", 
+                               bd=1, 
+                               relief="solid")
             value_f.grid(row=row*2+1, column=column, sticky="we", padx=10, pady=5)
 
             value_l = tk.Label(value_f, 
-                                   text=field_value, 
-                                   font=("Times New Roman", 10), 
-                                   fg="#222", 
-                                   bg="#f9f9f9", 
-                                   anchor="w", 
-                                   padx=10, 
-                                   pady=6)
+                               text=field_value, 
+                               font=("Times New Roman", 10), 
+                               fg="#222", 
+                               bg="#f9f9f9", 
+                               anchor="w", 
+                               padx=10, 
+                               pady=6)
             value_l.pack(fill=tk.X)
 
         details_f.grid_columnconfigure(0, weight=1)
         details_f.grid_columnconfigure(1, weight=1)
 
-        # Phần ảnh hồ sơ
         right_s = tk.Frame(section_f, bg="#fff")
         right_s.grid(row=0, column=1, sticky="n", pady=10)
         self.display_profile_image(right_s)
@@ -295,14 +301,14 @@ class HRMApp:
             img_path = os.path.join(BASE_DIR, "..", "img", "user.jpg")
 
         try:
-            img = Image.open(img_path).resize((180, 180))  # Không bo góc
+            img = Image.open(img_path).resize((180, 180))
             profile_img = ImageTk.PhotoImage(img)
             img_f = tk.Frame(frame, 
-                                 bg="#fff", 
-                                 width=200, 
-                                 height=200, 
-                                 highlightbackground="#dddddd", 
-                                 highlightthickness=1)
+                             bg="#fff", 
+                             width=200, 
+                             height=200, 
+                             highlightbackground="#dddddd", 
+                             highlightthickness=1)
             img_f.pack(pady=60)
             img_f.pack_propagate(False)
             img_label = tk.Label(img_f, image=profile_img, bg="#fff")
@@ -314,10 +320,10 @@ class HRMApp:
             img_f.pack(pady=10)
             img_f.pack_propagate(False)
             placeholder = tk.Label(img_f, 
-                                         text="No Image", 
-                                         font=("Times New Roman", 11), 
-                                         bg="#f0f0f0", 
-                                         fg="#888")
+                                   text="No Image", 
+                                   font=("Times New Roman", 11), 
+                                   bg="#f0f0f0", 
+                                   fg="#888")
             placeholder.place(relx=0.5, rely=0.5, anchor="center")
 
     def show_attendance(self):
@@ -337,95 +343,54 @@ class HRMApp:
         inner_f = tk.Frame(btn_f, bg="#fff")
         inner_f.pack(anchor="center")
 
-        # Load ảnh
+        month_label = tk.Label(inner_f, text="Tháng:", font=("Times New Roman", 11), bg="#fff")
+        month_label.pack(side=tk.LEFT, padx=(0, 5))
+        self.month_filter_attendance = ttk.Combobox(inner_f, values=["Tất cả"] + [str(i) for i in range(1, 13)], state="readonly", width=10)
+        self.month_filter_attendance.set("Tất cả")
+        self.month_filter_attendance.pack(side=tk.LEFT, padx=5)
+        self.month_filter_attendance.bind("<<ComboboxSelected>>", self.filter_by_date)
+
+        year_label = tk.Label(inner_f, text="Năm:", font=("Times New Roman", 11), bg="#fff")
+        year_label.pack(side=tk.LEFT, padx=(10, 5))
+        self.year_filter_attendance = ttk.Combobox(inner_f, values=["Tất cả"] + [str(i) for i in range(2020, 2026)], state="readonly", width=10)
+        self.year_filter_attendance.set("Tất cả")
+        self.year_filter_attendance.pack(side=tk.LEFT, padx=5)
+        self.year_filter_attendance.bind("<<ComboboxSelected>>", self.filter_by_date)
+
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
         img_dir = os.path.join(BASE_DIR, "..", "img")
-        search_img_path = os.path.join(img_dir, "search.png")
-        reset_img_path = os.path.join(img_dir, "reset.png")
+        excel_img_path = os.path.join(img_dir, "excel.png")
 
-        # Ktra và load ảnh Search
-        if os.path.exists(search_img_path):
-            search_img = Image.open(search_img_path).resize((16, 16), Image.Resampling.LANCZOS)
-            self.search_icon = ImageTk.PhotoImage(search_img)
+        if os.path.exists(excel_img_path):
+            excel_img = Image.open(excel_img_path).resize((22, 22), Image.Resampling.LANCZOS)
+            self.excel_icon = ImageTk.PhotoImage(excel_img)
         else:
-            self.search_icon = None
+            self.excel_icon = None
 
-        # Ktra và load ảnh Reset
-        if os.path.exists(reset_img_path):
-            reset_img = Image.open(reset_img_path).resize((22, 22), Image.Resampling.LANCZOS)
-            self.reset_icon = ImageTk.PhotoImage(reset_img)
-        else:
-            self.reset_icon = None
-
-        # Frame chứa ô tìm kiếm và nút tìm kiếm
-        search_frame = tk.Frame(inner_f, 
-                                bg="white", 
-                                relief="flat", 
-                                highlightthickness=1, 
-                                highlightbackground="#4c84f5")
-        search_frame.pack(side=tk.LEFT, padx=10, ipady=4)
-
-        # Text
-        self.search_var = tk.StringVar()
-        self.search_entry = tk.Entry(
-            search_frame,
-            textvariable=self.search_var,
-            font=("Times New Roman", 11),
-            width=25,
-            fg="gray",
-            relief="flat",
-            borderwidth=0,
-            bg="white"
-        )
-        self.search_entry.insert(0, "Tìm kiếm...")
-        self.search_entry.bind("<FocusIn>", self._clear_placeholder)
-        self.search_entry.bind("<FocusOut>", self._restore_placeholder)
-        self.search_entry.bind("<Return>", self.search) 
-        self.search_entry.pack(side=tk.LEFT, padx=(5, 0))
-
-        # Hình ảnh
-        search_button = tk.Button(
-            search_frame,
-            image=self.search_icon if self.search_icon else None,
-            command=self.search,  
-            bg="white",
-            bd=0,
-            relief="flat",
-            activebackground="#fff",
-            width=20, 
-            height=25,
-        )
-        if self.search_icon:
-            search_button.image = self.search_icon
-        search_button.pack(side=tk.RIGHT, padx=(2, 5))
-
-        # Nút Reset
-        reset_button = tk.Button(
+        excel_button = tk.Button(
             inner_f,
-            image=self.reset_icon,
+            text="Excel",
+            image=self.excel_icon,
             compound=tk.TOP,
-            command=self.reset_search,
+            command=lambda: src.salary.excel_utils.export_to_excel(self.tree, f"Attendance_{self.emp_id}"),
             bg="#fff",
             bd=0,
             width=50,
             height=50,
             font=("Times New Roman", 9),
             relief="flat",
-            activebackground="#e8eaeb"
+            activebackground="#65f06b"
         )
-        if self.reset_icon:
-            reset_button.image = self.reset_icon
-        reset_button.pack(side=tk.LEFT, padx=10)
+        if self.excel_icon:
+            excel_button.image = self.excel_icon
+        excel_button.pack(side=tk.LEFT, padx=10)
 
-        # Frame chứa bảng dữ liệu
         table_frame = tk.Frame(attendance_f, bg="#ffffff")
         table_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Tạo Style
         style = ttk.Style()
         style.theme_use("default") 
 
-        # Cấu hình layout cho tiêu đề
         style.layout("Treeview.Heading",
                     [('Treeheading.cell', {'sticky': 'nswe'}),
                     ('Treeheading.border', {'sticky': 'nswe', 'children': [
@@ -433,7 +398,6 @@ class HRMApp:
                             ('Treeheading.image', {'side': 'right', 'sticky': ''}),
                             ('Treeheading.text', {'sticky': 'we'})]})]})])
 
-        # Cấu hình tiêu đề
         style.configure("Custom.Treeview.Heading",
                         font=("Times New Roman", 10, "bold"),
                         background="#9fd7f9",
@@ -447,7 +411,6 @@ class HRMApp:
                         rowheight=25,
                         font=("Times New Roman", 10))
 
-        # Màu khi chọn dòng
         style.map("Treeview",
                     background=[("selected", "#c6e3f5")],
                     foreground=[("selected", "black")])
@@ -472,17 +435,18 @@ class HRMApp:
         self.load_attendance_data()
 
     def load_attendance_data(self, month=None, year=None):
+        if not self.conn or not self.cursor or not self.conn.is_connected():
+            self.connect_db()
         if not self.conn or not self.cursor:
-            self.setup_database()
-            if not self.conn:
-                return
+            messagebox.showerror("Lỗi CSDL", "Không thể kết nối đến cơ sở dữ liệu!")
+            return
 
         for item in self.tree.get_children():
             self.tree.delete(item)
 
         try:
             query = """
-                SELECT DATE_FORMAT(date, '%Y-%m-%d') as date, 
+                SELECT DATE_FORMAT(date, '%d/%m/%Y') as date, 
                        TIME_FORMAT(check_in, '%H:%i') as check_in, 
                        TIME_FORMAT(check_out, '%H:%i') as check_out, 
                        work_hours, overtime_hours 
@@ -490,10 +454,10 @@ class HRMApp:
             """
             params = [self.emp_id]
 
-            if month:
+            if month and month != "Tất cả":
                 query += " AND MONTH(date) = %s"
                 params.append(month)
-            if year:
+            if year and year != "Tất cả":
                 query += " AND YEAR(date) = %s"
                 params.append(year)
 
@@ -510,102 +474,18 @@ class HRMApp:
                     str(row['overtime_hours']) if row['overtime_hours'] else "0"
                 )
                 self.tree.insert("", "end", values=values)
+
+            if not rows:
+                messagebox.showinfo("Thông báo", "Không có dữ liệu chấm công!")
         except mysql.connector.Error as err:
-            messagebox.showerror("Database Error", f"Lỗi: {err}")
-
-    def _clear_placeholder(self, event):
-        if self.search_entry.get() == "Tìm kiếm...":
-            self.search_entry.delete(0, tk.END)
-            self.search_entry.config(fg="black")
-
-    def _restore_placeholder(self, event):
-        if not self.search_entry.get():
-            self.search_entry.insert(0, "Tìm kiếm...")
-            self.search_entry.config(fg="gray")
-
-    def load_attendance_data(self, month=None, year=None):
-        if not self.conn or not self.cursor:
-            self.setup_database()
-            if not self.conn:
-                return
-
-        for item in self.tree.get_children():
-            self.tree.delete(item)
-
-        try:
-            query = """
-                SELECT DATE_FORMAT(date, '%Y-%m-%d') as date, 
-                    TIME_FORMAT(check_in, '%H:%i') as check_in, 
-                    TIME_FORMAT(check_out, '%H:%i') as check_out, 
-                    work_hours, overtime_hours 
-                FROM Attendance WHERE emp_id = %s
-            """
-            params = [self.emp_id]
-
-            if month:
-                query += " AND MONTH(date) = %s"
-                params.append(month)
-            if year:
-                query += " AND YEAR(date) = %s"
-                params.append(year)
-
-            query += " ORDER BY date DESC"
-            self.cursor.execute(query, tuple(params))
-            rows = self.cursor.fetchall()
-
-            # Lưu dữ liệu vào self.attendance_data
-            self.attendance_data = []
-            for row in rows:
-                values = (
-                    row['date'],
-                    row['check_in'],
-                    row['check_out'] if row['check_out'] else "Chưa check-out",
-                    str(row['work_hours']) if row['work_hours'] else "0",
-                    str(row['overtime_hours']) if row['overtime_hours'] else "0"
-                )
-                self.attendance_data.append(values)
-                self.tree.insert("", "end", values=values)
-        except mysql.connector.Error as err:
-            messagebox.showerror("Database Error", f"Lỗi: {err}")
-
-    def search(self, event=None):
-        query = self.search_var.get().lower()
-        if query == "tìm kiếm...":
-            query = ""
-
-        # Xóa dữ liệu cũ trên tree
-        for item in self.tree.get_children():
-            self.tree.delete(item)
-
-        # Lọc lại dữ liệu từ self.attendance_data
-        if hasattr(self, 'attendance_data'):  # Kiểm tra xem self.attendance_data có tồn tại không
-            for row in self.attendance_data:
-                if any(query in str(field).lower() for field in row):
-                    self.tree.insert('', tk.END, values=row)
-        else:
-            # Nếu không có dữ liệu, tải lại từ cơ sở dữ liệu
-            self.load_attendance_data()
-            for row in self.attendance_data:
-                if any(query in str(field).lower() for field in row):
-                    self.tree.insert('', tk.END, values=row)
-    
-    def reset_search(self):
-        """Hàm xử lý khi nhấn nút Reset"""
-        # Xóa nội dung ô tìm kiếm
-        self.search_var.set("")
-        self.search_entry.delete(0, tk.END)
-        self.search_entry.insert(0, "Tìm kiếm...")
-        self.search_entry.config(fg="gray")
-        # Tải lại toàn bộ dữ liệu
-        self.load_attendance_data()
-
+            messagebox.showerror("Lỗi CSDL", f"Lỗi MySQL: {err}")
 
     def filter_by_date(self, event):
-        selected_month = self.month_filter.get()
-        selected_year = self.year_filter.get()
+        selected_month = self.month_filter_attendance.get()
+        selected_year = self.year_filter_attendance.get()
         
-        month = int(selected_month) if selected_month.isdigit() else None
-        year = int(selected_year) if selected_year.isdigit() else None
+        month = selected_month if selected_month != "Tất cả" else None
+        year = selected_year if selected_year != "Tất cả" else None
         self.load_attendance_data(month, year)
 
     def show_salary(self):
@@ -613,14 +493,208 @@ class HRMApp:
         salary_frame.pack(fill=tk.BOTH, expand=True)
 
         title_l = tk.Label(salary_frame, text="Thông tin lương", 
-                               font=("Times New Roman", 18, "bold"), fg="#333333", bg="#f5f7fa")
+                           font=("Times New Roman", 18, "bold"), fg="#333333", bg="#f5f7fa")
         title_l.pack(anchor="w", pady=(0, 20))
 
-        placeholder = tk.Label(salary_frame, text="Thông tin lương sẽ hiển thị ở đây", 
-                                    font=("Times New Roman", 12), fg="#333333", bg="#f5f7fa")
-        placeholder.pack(pady=50)
+        filter_frame = tk.Frame(salary_frame, bg="#f5f7fa")
+        filter_frame.pack(fill=tk.X, pady=(0, 10))
 
-    def logout(self):
+        inner_f = tk.Frame(filter_frame, bg="#f5f7fa")
+        inner_f.pack(anchor="center")
+
+        month_label = tk.Label(inner_f, text="Tháng:", font=("Times New Roman", 11), bg="#f5f7fa")
+        month_label.pack(side=tk.LEFT, padx=(0, 5))
+        self.month_filter_salary = ttk.Combobox(inner_f, values=["Tất cả"] + [str(i) for i in range(1, 13)], state="readonly", width=10)
+        self.month_filter_salary.set("Tất cả")
+        self.month_filter_salary.pack(side=tk.LEFT, padx=5)
+        self.month_filter_salary.bind("<<ComboboxSelected>>", self.filter_salary)
+
+        year_label = tk.Label(inner_f, text="Năm:", font=("Times New Roman", 11), bg="#f5f7fa")
+        year_label.pack(side=tk.LEFT, padx=(10, 5))
+        self.year_filter_salary = ttk.Combobox(inner_f, values=["Tất cả"] + [str(i) for i in range(2020, 2026)], state="readonly", width=10)
+        self.year_filter_salary.set("Tất cả")
+        self.year_filter_salary.pack(side=tk.LEFT, padx=5)
+        self.year_filter_salary.bind("<<ComboboxSelected>>", self.filter_salary)
+
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        img_dir = os.path.join(BASE_DIR, "..", "img")
+        excel_img_path = os.path.join(img_dir, "excel.png")
+        salary_img_path = os.path.join(img_dir, "salary.png")
+
+        if os.path.exists(excel_img_path):
+            excel_img = Image.open(excel_img_path).resize((22, 22), Image.Resampling.LANCZOS)
+            self.excel_icon = ImageTk.PhotoImage(excel_img)
+        else:
+            self.excel_icon = None
+
+        if os.path.exists(salary_img_path):
+            salary_img = Image.open(salary_img_path).resize((22, 22), Image.Resampling.LANCZOS)
+            self.salary_icon = ImageTk.PhotoImage(salary_img)
+        else:
+            self.salary_icon = None
+
+        excel_button = tk.Button(
+            inner_f,
+            text="Excel",
+            image=self.excel_icon,
+            compound=tk.TOP,
+            command=lambda: src.salary.excel_utils.export_to_excel(self.salary_tree, f"Payroll_{self.emp_id}"),
+            bg="#f5f7fa",
+            bd=0,
+            width=50,
+            height=50,
+            font=("Times New Roman", 9),
+            relief="flat",
+            activebackground="#65f06b"
+        )
+        if self.excel_icon:
+            excel_button.image = self.excel_icon
+        excel_button.pack(side=tk.LEFT, padx=10)
+
+        salary_button = tk.Button(
+            inner_f,
+            text="Lương",
+            image=self.salary_icon,
+            compound=tk.TOP,
+            command=self.start_calculate_salary,
+            bg="#f5f7fa",
+            bd=0,
+            width=50,
+            height=50,
+            font=("Times New Roman", 9),
+            relief="flat",
+            activebackground="#ffcc00"
+        )
+        if self.salary_icon:
+            salary_button.image = self.salary_icon
+        salary_button.pack(side=tk.LEFT, padx=10)
+
+        columns = ("Tháng/Năm", "Lương cơ bản", "Lương theo giờ", "Tiền tăng ca", "Tổng lương")
+        self.salary_tree = ttk.Treeview(salary_frame, columns=columns, show="headings", height=15)
+
+        style = ttk.Style()
+        style.theme_use("default")
+
+        style.layout("Treeview.Heading",
+                    [('Treeheading.cell', {'sticky': 'nswe'}),
+                    ('Treeheading.border', {'sticky': 'nswe', 'children': [
+                        ('Treeheading.padding', {'sticky': 'nswe', 'children': [
+                            ('Treeheading.image', {'side': 'right', 'sticky': ''}),
+                            ('Treeheading.text', {'sticky': 'we'})]})]})])
+
+        style.configure("Custom.Treeview.Heading",
+                        font=("Times New Roman", 10, "bold"),
+                        background="#9fd7f9",
+                        foreground="#000",
+                        relief="flat",
+                        padding=5)
+
+        style.configure("Custom.Treeview",
+                        background="#fff",
+                        foreground="black",
+                        rowheight=25,
+                        font=("Times New Roman", 10))
+
+        style.map("Treeview",
+                    background=[("selected", "#c6e3f5")],
+                    foreground=[("selected", "black")])
+
+        for col in columns:
+            self.salary_tree.heading(col, text=col)
+            self.salary_tree.column(col, width=180, anchor="center")
+
+        self.salary_tree.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
+        self.load_salary_data()
+
+    def load_salary_data(self, month=None, year=None):
+        if not self.conn or not self.cursor or not self.conn.is_connected():
+            self.connect_db()
+        if not self.conn or not self.cursor:
+            messagebox.showerror("Lỗi CSDL", "Không thể kết nối đến cơ sở dữ liệu!")
+            return
+
+        for item in self.salary_tree.get_children():
+            self.salary_tree.delete(item)
+
+        try:
+            query = """
+                SELECT DATE_FORMAT(month_year, '%m/%Y') as month_year, 
+                    base_salary, time_salary, overtime_salary
+                FROM Payroll 
+                WHERE emp_id = %s
+            """
+            params = [self.emp_id]
+
+            if month and month != "Tất cả":
+                query += " AND MONTH(month_year) = %s"
+                params.append(month)
+
+            if year and year != "Tất cả":
+                query += " AND YEAR(month_year) = %s"
+                params.append(year)
+
+            self.cursor.execute(query, tuple(params))
+            rows = self.cursor.fetchall()
+
+            for row in rows:
+                base_salary = row['base_salary'] if row['base_salary'] is not None else 0
+                time_salary = row['time_salary'] if row['time_salary'] is not None else 0
+                overtime_salary = row['overtime_salary'] if row['overtime_salary'] is not None else 0
+                total_salary = base_salary + time_salary + overtime_salary
+
+                values = (
+                    row['month_year'],
+                    f"{base_salary:,.0f}",
+                    f"{time_salary:,.0f}",
+                    f"{overtime_salary:,.0f}",
+                    f"{total_salary:,.0f}"
+                )
+                self.salary_tree.insert("", "end", values=values)
+
+            if not rows:
+                messagebox.showinfo("Thông báo", "Không có dữ liệu lương!")
+        except mysql.connector.Error as err:
+            messagebox.showerror("Lỗi CSDL", f"Lỗi MySQL: {err}")
+
+    def filter_salary(self, event=None):
+        selected_month = self.month_filter_salary.get()
+        selected_year = self.year_filter_salary.get()
+        
+        month = selected_month if selected_month != "Tất cả" else None
+        year = selected_year if selected_year != "Tất cả" else None
+        
+        self.load_salary_data(month=month, year=year)
+
+    def start_calculate_salary(self):
+        if not self.emp_id:
+            messagebox.showerror("Lỗi", "Không có mã nhân viên!")
+            return
+        self.root.config(cursor="wait")
+        messagebox.showinfo("Thông báo", "Đang tính lương, vui lòng chờ...")
+        thread = threading.Thread(target=self.calculate_salary, daemon=True)
+        thread.start()
+
+    def calculate_salary(self):
+        try:
+            success = src.salary.salary.calculate_and_update_payroll(emp_id=self.emp_id)
+            self.root.after(0, lambda: self.on_calculate_complete(success))
+        except Exception as e:
+            self.root.after(0, lambda: messagebox.showerror("Lỗi", f"Lỗi khi tính lương: {str(e)}"))
+
+    def on_calculate_complete(self, success):
+        self.root.config(cursor="")
+        if success:
+            messagebox.showinfo("Thành công", "Đã tính toán và cập nhật lương thành công!")
+            if self.conn and self.conn.is_connected():
+                self.cursor.close()
+                self.conn.close()
+            self.connect_db()
+            self.load_salary_data()
+            self.salary_tree.update()
+        else:
+            messagebox.showerror("Lỗi", "Tính lương thất bại! Vui lòng kiểm tra dữ liệu hoặc kết nối.")
+
+    def signin(self):
         if messagebox.askokcancel("Đăng xuất", "Bạn có chắc muốn đăng xuất?"):
             if self.conn and self.conn.is_connected():
                 self.cursor.close()
@@ -632,5 +706,5 @@ def main(emp_id=""):
     app = HRMApp(root, emp_id)
     root.mainloop()
 
-# if __name__ == "__main__":
-#     main(4)
+if __name__ == "__main__":
+    main(4)

@@ -7,8 +7,8 @@ class DatabaseHandler:
         try:
             self.conn = mysql.connector.connect(
                 host='localhost',
-                user='nii',  
-                # user='root',  
+                #user='nii',  
+                user='root',  
                 password='12345678',  
                 database='Face_Recognition'
             )
