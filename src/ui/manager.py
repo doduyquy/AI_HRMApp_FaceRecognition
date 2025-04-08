@@ -45,7 +45,7 @@ class ManagerApp:
 
         self.conn = mysql.connector.connect(
             host="localhost", 
-            user="root",
+            user="nii",
             password="12345678",
             database="Face_Recognition"
         )
@@ -396,7 +396,7 @@ class ManagerApp:
             self.tree.delete(item)
 
         try:
-            conn = mysql.connector.connect(host="localhost", user="root", password="12345678", database="Face_Recognition")
+            conn = mysql.connector.connect(host="localhost", user="nii", password="12345678", database="Face_Recognition")
             cursor = conn.cursor(dictionary=True)
 
             query = """
@@ -1094,7 +1094,7 @@ class ManagerApp:
             self.tree.delete(item)
 
         try:
-            conn = mysql.connector.connect(host="localhost", user="root", password="12345678", database="Face_Recognition")
+            conn = mysql.connector.connect(host="localhost", user="nii", password="12345678", database="Face_Recognition")
             cursor = conn.cursor(dictionary=True)
 
             query = """

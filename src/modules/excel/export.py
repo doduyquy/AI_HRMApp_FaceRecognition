@@ -7,7 +7,7 @@ class ExportToExcel:
     def __init__(self, treeview):
         self.tree = treeview
 
-    def export_to_excel(self):
+    def export(self):
         try:
             # Lấy tất cả dữ liệu từ Treeview
             data = []
