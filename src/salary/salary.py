@@ -6,7 +6,7 @@ from datetime import datetime, time, timedelta
 def connect_to_database():
     try:
         db = mysql.connector.connect(
-            user='root',
+            user='nii',
             password='12345678',  
             host='localhost',
             database='Face_Recognition'
