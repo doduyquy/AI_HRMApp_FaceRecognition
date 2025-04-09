@@ -2,10 +2,18 @@ import tkinter as tk
 from tkinter import messagebox, PhotoImage
 from PIL import Image, ImageTk
 import os
-import mysql.connector
 import employee 
 import IT 
 import manager
+from pathlib import Path
+import sys
+
+# Thêm thư mục src vào sys.path
+src_dir = str(Path(__file__).resolve().parent.parent)
+if src_dir not in sys.path:
+    sys.path.append(src_dir)
+
+from database import DB
 
 # Tạo cửa sổ chính
 root = tk.Tk()
@@ -75,35 +83,28 @@ def signin():
 
     # Database
     try:
-        conn = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="12345678",
-            database="Face_Recognition"
-        )
-        cursor = conn.cursor()
+        conn, cursor = DB.connect_to_database()
+        result = DB.check_employee_login(cursor, emp_id, password_input, default_password)
+    finally:
+        DB.close_connection(conn, cursor)
 
-        # Ktra trạng thái của nv
-        cursor.execute("SELECT emp_id, first_name, last_name, status FROM Employees WHERE emp_id = %s", (emp_id,))
-        result = cursor.fetchone()
-
-        if result:
-            emp_id_db, first_name, last_name, status = result
-            if status == "Đã nghỉ": 
-                messagebox.showerror("Lỗi", "Tài khoản của bạn đã khóa, bạn không thể đăng nhập!")
-            elif password_input == default_password:
-                full_name = f"{last_name} {first_name}"
-                show_welcome_screen(full_name, lambda: employee.main(emp_id))
-            else:
-                messagebox.showerror("Lỗi", "Mật khẩu không đúng")
-        else:
+    if result["success"]:
+        full_name = result["full_name"]
+        print(f"Đăng nhập thành công: {full_name} (ID: {emp_id})")
+        show_welcome_screen(full_name, lambda: employee.main(emp_id))
+    else:
+        if result["error"] == "wrong_password":
+            messagebox.showerror("Lỗi", "Mật khẩu không đúng")
+            print("Mật khẩu không đúng")
+        elif result["error"] == "not_found":
             messagebox.showerror("Lỗi", "Tên đăng nhập không tồn tại")
-
-        cursor.close()
-        conn.close()
-    
-    except mysql.connector.Error as e:
-        messagebox.showerror("Lỗi kết nối", f"Lỗi MySQL: {e}")
+            print("Tên đăng nhập không tồn tại")
+        elif result["error"] == "inactive":
+            messagebox.showerror("Tài khoản bị khóa", "Nhân viên này đã nghỉ làm, không thể đăng nhập.")
+            print("Nhân viên này đã nghỉ làm, không thể đăng nhập.")
+        elif result["error"] == "mysql_error":
+            messagebox.showerror("Lỗi kết nối", f"Lỗi MySQL: {result['message']}")
+            print(f"Lỗi MySQL: {result['message']}")
 
 # Load hình ảnh giao diện
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -181,5 +182,6 @@ tk.Frame(f, width=330, height=2, bg='black', border=1).place(x=50, y=190)
 
 # Nút đăng nhập
 tk.Button(f, width=39, pady=7, text='Đăng Nhập', bg='#57a1f8', fg='white', font=('Times New Roman', 12), border=0, command=signin).place(x=35, y=240)
+
 
 root.mainloop()

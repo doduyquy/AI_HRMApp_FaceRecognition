@@ -10,11 +10,22 @@ import src.salary.excel_utils
 import src.salary.salary
 import threading
 
+from pathlib import Path
+import sys
+
+# Thêm thư mục src vào sys.path
+src_dir = str(Path(__file__).resolve().parent.parent)
+if src_dir not in sys.path:
+    sys.path.append(src_dir)
+
+from database import DB
+
 class HRMApp:
     def __init__(self, root, emp_id):
         self.root = root
         self.root.title("Nhân Viên")
-        self.root.geometry("1200x550+50+50")
+        # self.root.geometry("1200x550+50+50")
+        self.root.state('zoomed')
         
         self.emp_id = str(emp_id)
         self.select_btn = None
@@ -30,40 +41,26 @@ class HRMApp:
         self.load_data()
         self.create_ui()
 
+    # DB
     def connect_db(self):
         try:
-            self.conn = mysql.connector.connect(
-                host="localhost",
-                user="root",
-                password="12345678",
-                database="Face_Recognition"
-            )
-            self.cursor = self.conn.cursor(dictionary=True)
+            self.conn, self.cursor = DB.connect_to_database()
         except mysql.connector.Error as err:
             messagebox.showerror("Lỗi CSDL", f"Lỗi kết nối MySQL: {err}")
 
+    # Lấy dữ liệu nv
     def get_employee_data(self, emp_id):
         if not self.conn or not self.cursor:
             return
-        try:
-            self.cursor.execute("SELECT * FROM Employees WHERE emp_id = %s", (emp_id,))
-            self.employee = self.cursor.fetchone()
-            if not self.employee:
-                print(f"Không tìm thấy nhân viên với emp_id: {self.emp_id}")
-        except mysql.connector.Error as err:
-            messagebox.showerror("Lỗi CSDL", f"Lỗi MySQL: {err}")
+        self.employee = DB.get_employee_data(self.cursor, emp_id)
 
+    # Load ds phòng ban
     def load_data(self):
         if not self.conn or not self.cursor:
             return
-        try:
-            self.cursor.execute("SELECT dep_id, dep_name FROM Departments")
-            result = self.cursor.fetchall()
-            for row in result:
-                self.departments[row['dep_id']] = row['dep_name']
-        except mysql.connector.Error as err:
-            messagebox.showerror("Database Error", f"Lỗi: {err}")
+        self.departments = DB.load_departments(self.cursor)
 
+    # Tạo giao diện chính
     def create_ui(self):
         self.sidebar = tk.Frame(self.root, width=250, bg="#e9f4f5")
         self.sidebar.pack(side=tk.LEFT, fill=tk.Y)
@@ -79,6 +76,7 @@ class HRMApp:
 
         self.on_menu_click("Hồ sơ")
 
+    # Tạo nội dung sidebar
     def create_sidebar_content(self):
         logo_f = tk.Frame(self.sidebar, bg="#e9f4f5", height=60)
         logo_f.pack(fill=tk.X)
@@ -158,6 +156,7 @@ class HRMApp:
             btn.pack(fill=tk.X)
             self.menu_btn[item] = btn
 
+    # Lấy path ảnh nv
     def get_employee_image(self, folder):
         if os.path.exists(folder):
             for file_name in os.listdir(folder):
@@ -165,6 +164,7 @@ class HRMApp:
                     return os.path.join(folder, file_name)
         return None
 
+    # Tạo avt nv
     def create_avatar(self, frame, img_path):
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
         default_img_path = os.path.join(BASE_DIR, "..", "img", "user.jpg")
@@ -187,6 +187,7 @@ class HRMApp:
             label.pack(pady=10)
             return label
 
+    # Icon
     def load_icon(self, base_dir, icon_name):
         icon_path = os.path.join(base_dir, "..", "img", icon_name)
         if os.path.exists(icon_path):
@@ -195,6 +196,7 @@ class HRMApp:
         print(f"Không tìm thấy icon: {icon_name}")
         return None
 
+    # Sự kiện click menu
     def on_menu_click(self, option):
         if self.select_btn:
             self.select_btn.config(bg="#e9f4f5")
@@ -213,6 +215,7 @@ class HRMApp:
         elif option == "Đăng xuất":
             self.signin()
 
+    # Hiển thị thông tin hồ sơ
     def show_profile(self):
         profile_f = tk.Frame(self.content_area, bg="#fff")
         profile_f.pack(fill=tk.BOTH, expand=True)
@@ -293,6 +296,7 @@ class HRMApp:
         right_s.grid(row=0, column=1, sticky="n", pady=10)
         self.display_profile_image(right_s)
 
+    # Hiển thị ảnh hồ sơ
     def display_profile_image(self, frame):
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
         data = os.path.join(BASE_DIR, "..", "..", "Data")
@@ -326,6 +330,7 @@ class HRMApp:
                                    fg="#888")
             placeholder.place(relx=0.5, rely=0.5, anchor="center")
 
+    #  Chấm công
     def show_attendance(self):
         attendance_f = tk.Frame(self.content_area, bg="#fff")
         attendance_f.pack(fill=tk.BOTH, expand=True)
@@ -434,6 +439,7 @@ class HRMApp:
 
         self.load_attendance_data()
 
+    # Load dữ liệu chấm công
     def load_attendance_data(self, month=None, year=None):
         if not self.conn or not self.cursor or not self.conn.is_connected():
             self.connect_db()
@@ -444,42 +450,25 @@ class HRMApp:
         for item in self.tree.get_children():
             self.tree.delete(item)
 
-        try:
-            query = """
-                SELECT DATE_FORMAT(date, '%d/%m/%Y') as date, 
-                       TIME_FORMAT(check_in, '%H:%i') as check_in, 
-                       TIME_FORMAT(check_out, '%H:%i') as check_out, 
-                       work_hours, overtime_hours 
-                FROM Attendance WHERE emp_id = %s
-            """
-            params = [self.emp_id]
+        rows = DB.get_attendance_by_emp(self.cursor, self.emp_id, month, year)
+        if isinstance(rows, dict) and "error" in rows:
+            messagebox.showerror("Lỗi CSDL", rows["error"])
+            return
 
-            if month and month != "Tất cả":
-                query += " AND MONTH(date) = %s"
-                params.append(month)
-            if year and year != "Tất cả":
-                query += " AND YEAR(date) = %s"
-                params.append(year)
+        for row in rows:
+            values = (
+                row['date'],
+                row['check_in'],
+                row['check_out'] if row['check_out'] else "Chưa check-out",
+                str(row['work_hours']) if row['work_hours'] else "0",
+                str(row['overtime_hours']) if row['overtime_hours'] else "0"
+            )
+            self.tree.insert("", "end", values=values)
 
-            query += " ORDER BY date DESC"
-            self.cursor.execute(query, tuple(params))
-            rows = self.cursor.fetchall()
+        if not rows:
+            messagebox.showinfo("Thông báo", "Không có dữ liệu chấm công!")
 
-            for row in rows:
-                values = (
-                    row['date'],
-                    row['check_in'],
-                    row['check_out'] if row['check_out'] else "Chưa check-out",
-                    str(row['work_hours']) if row['work_hours'] else "0",
-                    str(row['overtime_hours']) if row['overtime_hours'] else "0"
-                )
-                self.tree.insert("", "end", values=values)
-
-            if not rows:
-                messagebox.showinfo("Thông báo", "Không có dữ liệu chấm công!")
-        except mysql.connector.Error as err:
-            messagebox.showerror("Lỗi CSDL", f"Lỗi MySQL: {err}")
-
+    # Lọc dữ liệu chấm công theo ngày
     def filter_by_date(self, event):
         selected_month = self.month_filter_attendance.get()
         selected_year = self.year_filter_attendance.get()
@@ -488,6 +477,7 @@ class HRMApp:
         year = selected_year if selected_year != "Tất cả" else None
         self.load_attendance_data(month, year)
 
+    # Hiển thị thông tin lương
     def show_salary(self):
         salary_frame = tk.Frame(self.content_area, bg="#f5f7fa")
         salary_frame.pack(fill=tk.BOTH, expand=True)
@@ -606,6 +596,7 @@ class HRMApp:
         self.salary_tree.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
         self.load_salary_data()
 
+    #  Load dữ liệu lương
     def load_salary_data(self, month=None, year=None):
         if not self.conn or not self.cursor or not self.conn.is_connected():
             self.connect_db()
@@ -616,46 +607,30 @@ class HRMApp:
         for item in self.salary_tree.get_children():
             self.salary_tree.delete(item)
 
-        try:
-            query = """
-                SELECT DATE_FORMAT(month_year, '%m/%Y') as month_year, 
-                    base_salary, time_salary, overtime_salary
-                FROM Payroll 
-                WHERE emp_id = %s
-            """
-            params = [self.emp_id]
+        rows = DB.get_salary_data(self.cursor, self.emp_id, month, year)
+        if isinstance(rows, dict) and "error" in rows:
+            messagebox.showerror("Lỗi CSDL", rows["error"])
+            return
 
-            if month and month != "Tất cả":
-                query += " AND MONTH(month_year) = %s"
-                params.append(month)
+        for row in rows:
+            base_salary = row['base_salary'] if row['base_salary'] is not None else 0
+            time_salary = row['time_salary'] if row['time_salary'] is not None else 0
+            overtime_salary = row['overtime_salary'] if row['overtime_salary'] is not None else 0
+            total_salary = base_salary + time_salary + overtime_salary
 
-            if year and year != "Tất cả":
-                query += " AND YEAR(month_year) = %s"
-                params.append(year)
+            values = (
+                row['month_year'],
+                f"{base_salary:,.0f}",
+                f"{time_salary:,.0f}",
+                f"{overtime_salary:,.0f}",
+                f"{total_salary:,.0f}"
+            )
+            self.salary_tree.insert("", "end", values=values)
 
-            self.cursor.execute(query, tuple(params))
-            rows = self.cursor.fetchall()
+        if not rows:
+            messagebox.showinfo("Thông báo", "Không có dữ liệu lương!")
 
-            for row in rows:
-                base_salary = row['base_salary'] if row['base_salary'] is not None else 0
-                time_salary = row['time_salary'] if row['time_salary'] is not None else 0
-                overtime_salary = row['overtime_salary'] if row['overtime_salary'] is not None else 0
-                total_salary = base_salary + time_salary + overtime_salary
-
-                values = (
-                    row['month_year'],
-                    f"{base_salary:,.0f}",
-                    f"{time_salary:,.0f}",
-                    f"{overtime_salary:,.0f}",
-                    f"{total_salary:,.0f}"
-                )
-                self.salary_tree.insert("", "end", values=values)
-
-            if not rows:
-                messagebox.showinfo("Thông báo", "Không có dữ liệu lương!")
-        except mysql.connector.Error as err:
-            messagebox.showerror("Lỗi CSDL", f"Lỗi MySQL: {err}")
-
+    # Lọc dữ liệu lương
     def filter_salary(self, event=None):
         selected_month = self.month_filter_salary.get()
         selected_year = self.year_filter_salary.get()
@@ -665,6 +640,7 @@ class HRMApp:
         
         self.load_salary_data(month=month, year=year)
 
+    # Bắt đầu tính lương
     def start_calculate_salary(self):
         if not self.emp_id:
             messagebox.showerror("Lỗi", "Không có mã nhân viên!")
@@ -674,6 +650,7 @@ class HRMApp:
         thread = threading.Thread(target=self.calculate_salary, daemon=True)
         thread.start()
 
+    # Tính lương
     def calculate_salary(self):
         try:
             success = src.salary.salary.calculate_and_update_payroll(emp_id=self.emp_id)
@@ -681,24 +658,24 @@ class HRMApp:
         except Exception as e:
             self.root.after(0, lambda: messagebox.showerror("Lỗi", f"Lỗi khi tính lương: {str(e)}"))
 
+    # Hoàn tất lương
     def on_calculate_complete(self, success):
         self.root.config(cursor="")
         if success:
             messagebox.showinfo("Thành công", "Đã tính toán và cập nhật lương thành công!")
             if self.conn and self.conn.is_connected():
-                self.cursor.close()
-                self.conn.close()
+                DB.close_connection(self.conn, self.cursor)
             self.connect_db()
             self.load_salary_data()
             self.salary_tree.update()
         else:
             messagebox.showerror("Lỗi", "Tính lương thất bại! Vui lòng kiểm tra dữ liệu hoặc kết nối.")
 
+    # Đăng xuất
     def signin(self):
         if messagebox.askokcancel("Đăng xuất", "Bạn có chắc muốn đăng xuất?"):
             if self.conn and self.conn.is_connected():
-                self.cursor.close()
-                self.conn.close()
+                DB.close_connection(self.conn, self.cursor)
             self.root.destroy()
 
 def main(emp_id=""):

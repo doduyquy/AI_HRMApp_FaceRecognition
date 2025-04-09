@@ -8,6 +8,8 @@ import calendar
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.dates as mdates
+import matplotlib
+import sys
 
 class StatisticApp:
     def __init__(self, parent, db_connection, db_cursor):
@@ -20,69 +22,57 @@ class StatisticApp:
         self.overtime_threshold_var = tk.StringVar(value="24")
         self.top_n_var = tk.StringVar(value="3")
 
-        self.bg_color = "#f7f8fa"  # Màu nền nhẹ
-        self.card_bg = "#ffffff"   # Màu nền cho các thẻ số liệu
-        self.accent_color = "#0276f7"  # Màu nhấn
+        self.bg_color = "#f7f8fa"
+        self.card_bg = "#ffffff"
+        self.accent_color = "#0276f7"
 
-        # Gắn sự kiện đóng cửa sổ cho toplevel (cửa sổ gốc của parent)
+        self.destroyed = False
+
         self.toplevel = self.parent.winfo_toplevel()
-        self.toplevel.protocol("WM_DELETE_WINDOW", self.destroy)
+        self.toplevel.protocol("WM_DELETE_WINDOW", self.on_close)
 
         self.create_ui()
 
     def create_ui(self):
-        # Tạo Canvas chính để chứa toàn bộ giao diện
         self.canvas = tk.Canvas(self.parent, bg=self.bg_color, highlightthickness=0)
         self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        # Thêm thanh cuộn dọc
         self.scrollbar = ttk.Scrollbar(self.parent, orient=tk.VERTICAL, command=self.canvas.yview)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # Cấu hình Canvas để sử dụng thanh cuộn
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
 
-        # Tạo Frame bên trong Canvas để chứa các thành phần giao diện
         self.scrollable_frame = tk.Frame(self.canvas, bg=self.bg_color)
-        
-        # Thêm Frame vào Canvas
         self.canvas_frame = self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
 
-        # Gọi hàm hiển thị giao diện
         self.show_statistics()
 
-        # Cập nhật kích thước của Canvas khi nội dung thay đổi
         self.scrollable_frame.bind("<Configure>", self.on_frame_configure)
         self.canvas.bind("<Configure>", self.on_canvas_configure)
-
-        # Thêm sự kiện cuộn chuột
         self.canvas.bind_all("<MouseWheel>", self.on_mousewheel)
 
     def on_frame_configure(self, event=None):
-        # Cập nhật vùng cuộn của Canvas khi kích thước Frame thay đổi
-        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        if hasattr(self, 'canvas') and self.canvas and self.canvas.winfo_exists():
+            self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
     def on_canvas_configure(self, event):
-        # Cập nhật chiều rộng của Frame bên trong Canvas
-        self.canvas.itemconfig(self.canvas_frame, width=event.width)
+        if hasattr(self, 'canvas') and self.canvas and self.canvas.winfo_exists():
+            self.canvas.itemconfig(self.canvas_frame, width=event.width)
 
     def on_mousewheel(self, event):
-        # Cuộn Canvas khi sử dụng bánh xe chuột
-        self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        if hasattr(self, 'canvas') and self.canvas and self.canvas.winfo_exists():
+            self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
     def show_statistics(self):
         stats_frame = tk.Frame(self.scrollable_frame, bg=self.bg_color)
         stats_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
 
-        # Title
         title_l = tk.Label(stats_frame, text="Thống Kê Nhân Sự", font=("Times New Roman", 20, "bold"), fg="#333333", bg=self.bg_color)
         title_l.pack(anchor="center", pady=(10, 20))
 
-        # Summary Cards (Tổng quan)
         summary_cards_frame = tk.Frame(stats_frame, bg=self.bg_color)
         summary_cards_frame.pack(fill=tk.X, pady=10)
 
-        # Card 1: Tổng nhân viên
         total_employees_card = tk.Frame(summary_cards_frame, bg=self.card_bg, bd=1, relief="solid")
         total_employees_card.pack(side=tk.LEFT, padx=10, pady=5, fill=tk.X, expand=True)
         tk.Label(total_employees_card, text="Tổng Nhân Viên", font=("Times New Roman", 12), bg=self.card_bg, fg="#666").pack(pady=(10, 0))
@@ -90,7 +80,6 @@ class StatisticApp:
         self.total_employees_label.pack()
         tk.Label(total_employees_card, text="1.225% ↑ từ kỳ trước", font=("Times New Roman", 10), bg=self.card_bg, fg="#28A745").pack(pady=(0, 10))
 
-        # Card 2: Tổng ngày làm việc
         total_workdays_card = tk.Frame(summary_cards_frame, bg=self.card_bg, bd=1, relief="solid")
         total_workdays_card.pack(side=tk.LEFT, padx=10, pady=5, fill=tk.X, expand=True)
         tk.Label(total_workdays_card, text="Tổng Ngày Làm Việc", font=("Times New Roman", 12), bg=self.card_bg, fg="#666").pack(pady=(10, 0))
@@ -98,7 +87,6 @@ class StatisticApp:
         self.total_workdays_label.pack()
         tk.Label(total_workdays_card, text="2.214% ↑ từ kỳ trước", font=("Times New Roman", 10), bg=self.card_bg, fg="#28A745").pack(pady=(0, 10))
 
-        # Card 3: Tổng lương
         total_salary_card = tk.Frame(summary_cards_frame, bg=self.card_bg, bd=1, relief="solid")
         total_salary_card.pack(side=tk.LEFT, padx=10, pady=5, fill=tk.X, expand=True)
         tk.Label(total_salary_card, text="Tổng Lương", font=("Times New Roman", 12), bg=self.card_bg, fg="#666").pack(pady=(10, 0))
@@ -106,7 +94,6 @@ class StatisticApp:
         self.total_salary_label.pack()
         tk.Label(total_salary_card, text="26.945% ↑ từ kỳ trước", font=("Times New Roman", 10), bg=self.card_bg, fg="#28A745").pack(pady=(0, 10))
 
-        # Card 4: Tăng ca
         overtime_card = tk.Frame(summary_cards_frame, bg=self.card_bg, bd=1, relief="solid")
         overtime_card.pack(side=tk.LEFT, padx=10, pady=5, fill=tk.X, expand=True)
         tk.Label(overtime_card, text="Tăng Ca Trên 24h", font=("Times New Roman", 12), bg=self.card_bg, fg="#666").pack(pady=(10, 0))
@@ -114,7 +101,6 @@ class StatisticApp:
         self.overtime_count_label.pack()
         tk.Label(overtime_card, text="1.066% ↑ từ kỳ trước", font=("Times New Roman", 10), bg=self.card_bg, fg="#28A745").pack(pady=(0, 10))
 
-        # Filter Frame
         filter_frame = tk.Frame(stats_frame, bg=self.bg_color)
         filter_frame.pack(fill=tk.X, pady=(0, 10))
 
@@ -143,16 +129,13 @@ class StatisticApp:
         refresh_btn.bind("<Enter>", lambda e: refresh_btn.config(bg="#218838"))
         refresh_btn.bind("<Leave>", lambda e: refresh_btn.config(bg="#28A745"))
 
-        # Chart Frame (Biểu đồ)
         chart_frame = tk.Frame(stats_frame, bg=self.bg_color)
         chart_frame.pack(fill=tk.BOTH, expand=True, pady=10)
 
-        # Tạo biểu đồ
         self.fig, self.ax = plt.subplots(figsize=(8, 3))
         self.canvas_widget = FigureCanvasTkAgg(self.fig, master=chart_frame)
         self.canvas_widget.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
-        # Attendance Treeview
         attendance_frame = tk.Frame(stats_frame, bg=self.bg_color)
         attendance_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -178,7 +161,6 @@ class StatisticApp:
 
         self.attendance_tree.bind("<Double-1>", self.show_attendance_details)
 
-        # Top Salary Treeview
         top_salary_frame = tk.Frame(stats_frame, bg=self.bg_color)
         top_salary_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -198,7 +180,6 @@ class StatisticApp:
         self.top_salary_tree.column("Tên", width=200, anchor="w")
         self.top_salary_tree.column("Lương", width=150, anchor="center")
 
-        # Style Treeview
         style = ttk.Style()
         style.configure("Treeview", font=("Times New Roman", 10), rowheight=25)
         style.configure("Treeview.Heading", font=("Times New Roman", 11, "bold"), background="#9fd7f9", foreground="#000")
@@ -293,17 +274,14 @@ class StatisticApp:
         last_day = calendar.monthrange(year, month)[1]
         end_date = datetime(year, month, last_day)
 
-        # Tổng nhân viên
         self.cursor.execute("SELECT COUNT(*) AS total FROM Employees")
         total_employees = self.cursor.fetchone()['total']
         self.total_employees_label.config(text=str(total_employees))
 
-        # Tổng ngày làm việc
         workdays = self.get_workdays_in_month(year, month)
         total_workdays = len(workdays)
         self.total_workdays_label.config(text=str(total_workdays))
 
-        # Tải dữ liệu chấm công
         for item in self.attendance_tree.get_children():
             self.attendance_tree.delete(item)
 
@@ -331,7 +309,6 @@ class StatisticApp:
             total_days += on_time + late
             self.attendance_tree.insert("", "end", values=(idx, row['emp_id'], full_name, on_time, late, absent))
 
-        # Số nhân viên tăng ca
         self.cursor.execute("""
             SELECT COUNT(DISTINCT emp_id) AS overtime_count
             FROM (
@@ -345,7 +322,6 @@ class StatisticApp:
         overtime_count = self.cursor.fetchone()['overtime_count']
         self.overtime_count_label.config(text=f"{overtime_count}")
 
-        # Top lương cao
         for item in self.top_salary_tree.get_children():
             self.top_salary_tree.delete(item)
 
@@ -362,7 +338,6 @@ class StatisticApp:
             full_name = f"{row['last_name']} {row['first_name']}"
             self.top_salary_tree.insert("", "end", values=(idx, row['emp_id'], full_name, f"{row['total_salary']:,.0f} VNĐ"))
 
-        # Tổng lương
         self.cursor.execute("""
             SELECT SUM(base_salary + overtime_salary) AS total_salary
             FROM Payroll
@@ -371,7 +346,6 @@ class StatisticApp:
         total_salary = self.cursor.fetchone()['total_salary'] or 0
         self.total_salary_label.config(text=f"{total_salary:,.0f} VNĐ")
 
-        # Vẽ biểu đồ (Tổng lương theo tháng trong năm)
         self.cursor.execute("""
             SELECT month_year, SUM(base_salary + overtime_salary) AS total_salary
             FROM Payroll
@@ -394,13 +368,8 @@ class StatisticApp:
             self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%b'))
             self.ax.xaxis.set_major_locator(mdates.MonthLocator())
             plt.setp(self.ax.get_xticklabels(), rotation=45, ha="right")
-
-            # Định dạng trục y với dấu phân cách hàng nghìn
-            self.ax.get_yaxis().set_major_formatter(
-                plt.FuncFormatter(lambda x, loc: "{:,.0f}".format(x))
-            )
+            self.ax.get_yaxis().set_major_formatter(plt.FuncFormatter(lambda x, loc: "{:,.0f}".format(x)))
         else:
-            # Hiển thị thông báo nếu không có dữ liệu
             self.ax.text(0.5, 0.5, f"Không có dữ liệu lương cho năm {year}", 
                          horizontalalignment='center', verticalalignment='center', 
                          transform=self.ax.transAxes, fontsize=12, color="red")
@@ -411,47 +380,92 @@ class StatisticApp:
         self.canvas_widget.draw()
 
     def destroy(self):
-        print("Bắt đầu hủy StatisticApp")  # Debug
-        # Gỡ bỏ sự kiện cuộn chuột
-        if hasattr(self, 'canvas'):
-            self.canvas.unbind_all("<MouseWheel>")
-            print("Đã gỡ sự kiện MouseWheel")  # Debug
+        if self.destroyed:
+            print("StatisticApp đã được hủy trước đó, bỏ qua.")
+            return
 
-        # Đóng biểu đồ Matplotlib
-        if hasattr(self, 'fig'):
-            plt.close(self.fig)
-            print("Đã đóng fig")  # Debug
+        print("Bắt đầu hủy StatisticApp")
+        try:
+            # Gỡ sự kiện cuộn chuột
+            if hasattr(self, 'canvas') and self.canvas is not None and self.canvas.winfo_exists():
+                self.canvas.unbind_all("<MouseWheel>")
+                print("Đã gỡ sự kiện MouseWheel")
 
-        # Hủy canvas_widget
-        if hasattr(self, 'canvas_widget') and self.canvas_widget:
-            self.canvas_widget.get_tk_widget().destroy()
-            print("Đã hủy canvas_widget")  # Debug
+            # Đóng biểu đồ Matplotlib
+            if hasattr(self, 'fig') and self.fig is not None:
+                plt.close(self.fig)
+                print("Đã đóng fig")
+                self.fig = None
 
-        # Hủy attendance_tree và top_salary_tree
-        if hasattr(self, 'attendance_tree') and self.attendance_tree:
-            self.attendance_tree.destroy()
-            print("Đã hủy attendance_tree")  # Debug
-        if hasattr(self, 'top_salary_tree') and self.top_salary_tree:
-            self.top_salary_tree.destroy()
-            print("Đã hủy top_salary_tree")  # Debug
+            # Hủy các widget con
+            if hasattr(self, 'attendance_tree') and self.attendance_tree is not None and self.attendance_tree.winfo_exists():
+                self.attendance_tree.destroy()
+                print("Đã hủy attendance_tree")
+            if hasattr(self, 'top_salary_tree') and self.top_salary_tree is not None and self.top_salary_tree.winfo_exists():
+                self.top_salary_tree.destroy()
+                print("Đã hủy top_salary_tree")
+            if hasattr(self, 'canvas_widget') and self.canvas_widget is not None and self.canvas_widget.get_tk_widget().winfo_exists():
+                self.canvas_widget.get_tk_widget().destroy()
+                print("Đã hủy canvas_widget")
 
-        # Hủy scrollable_frame và các widget con
-        if hasattr(self, 'scrollable_frame') and self.scrollable_frame:
-            for widget in self.scrollable_frame.winfo_children():
-                widget.destroy()
-                print(f"Đã hủy widget con của scrollable_frame: {widget}")  # Debug
-            self.scrollable_frame.destroy()
-            print("Đã hủy scrollable_frame")  # Debug
+            # Hủy scrollable_frame
+            if hasattr(self, 'scrollable_frame') and self.scrollable_frame is not None and self.scrollable_frame.winfo_exists():
+                for widget in self.scrollable_frame.winfo_children():
+                    if widget.winfo_exists():
+                        widget.destroy()
+                        print(f"Đã hủy widget con của scrollable_frame: {widget}")
+                self.scrollable_frame.destroy()
+                print("Đã hủy scrollable_frame")
 
-        # Hủy canvas và scrollbar
-        if hasattr(self, 'canvas') and self.canvas:
-            self.canvas.destroy()
-            print("Đã hủy canvas")  # Debug
-        if hasattr(self, 'scrollbar') and self.scrollbar:
-            self.scrollbar.destroy()
-            print("Đã hủy scrollbar")  # Debug
+            # Hủy canvas và scrollbar
+            if hasattr(self, 'canvas') and self.canvas is not None and self.canvas.winfo_exists():
+                self.canvas.destroy()
+                print("Đã hủy canvas")
+            if hasattr(self, 'scrollbar') and self.scrollbar is not None and self.scrollbar.winfo_exists():
+                self.scrollbar.destroy()
+                print("Đã hủy scrollbar")
 
-        print("Kết thúc hủy StatisticApp")  # Debug
+            # Đóng kết nối cơ sở dữ liệu nếu có
+            if hasattr(self, 'cursor') and self.cursor is not None:
+                try:
+                    self.cursor.close()
+                    print("Đã đóng cursor")
+                except:
+                    print("Không thể đóng cursor (có thể đã đóng trước đó)")
+            if hasattr(self, 'conn') and self.conn is not None and self.conn.is_connected():
+                try:
+                    self.conn.close()
+                    print("Đã đóng kết nối cơ sở dữ liệu")
+                except:
+                    print("Không thể đóng kết nối DB (có thể đã đóng trước đó)")
+
+            # Đặt các thuộc tính về None
+            self.canvas = None
+            self.scrollable_frame = None
+            self.canvas_widget = None
+            self.attendance_tree = None
+            self.top_salary_tree = None
+            self.scrollbar = None
+            self.cursor = None
+            self.conn = None
+
+            self.destroyed = True
+            print("Kết thúc hủy StatisticApp")
+
+        except Exception as e:
+            print(f"Lỗi trong destroy StatisticApp: {e}")
+
+    def on_close(self):
+        print("Người dùng nhấn nút đóng cửa sổ")
+        try:
+            self.destroy()
+            if self.toplevel.winfo_exists():
+                self.toplevel.destroy()  # Đóng toplevel thay vì parent để tránh xung đột
+            print("Đã đóng cửa sổ gốc")
+            sys.exit(0)  # Thoát hoàn toàn chương trình
+        except Exception as e:
+            print(f"Lỗi trong on_close: {e}")
+            sys.exit(1)  # Thoát với mã lỗi nếu có vấn đề
 
 if __name__ == "__main__":
     root = tk.Tk()

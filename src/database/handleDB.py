@@ -25,29 +25,16 @@ class DatabaseHandler:
                 print(err)
             raise
 
-    # Return full_name of employee by emp_id
-    def get_name_by_id(self, emp_id):
-        """Lấy tên nhân viên từ ID"""
-        query = """
-            SELECT CONCAT(last_name, ' ', first_name) AS full_name
-            FROM Employees
-            WHERE emp_id = %s
-        """
-        self.cursor.execute(query, (emp_id,))
-        result = self.cursor.fetchone()
-        return result['full_name'] if result else None
-    
-    def get_last_attendance_in_date(self, emp_id, date=None):
-        if date is None:
-            date = datetime.now().date()
-        
-        """Lấy bản ghi chấm công gần nhất của nhân viên tron ngày"""
+    def get_last_attendance(self, emp_id):
+        """Lấy bản ghi chấm công gần nhất của nhân viên"""
         query = """
             SELECT check_in, check_out, date
             FROM Attendance 
-            WHERE emp_id = %s AND date = %s
+            WHERE emp_id = %s 
+            ORDER BY check_in DESC 
+            LIMIT 1
         """
-        self.cursor.execute(query, (emp_id, date))
+        self.cursor.execute(query, (emp_id,))
         result = self.cursor.fetchone()
         return result  # Trả về dict với check_in, check_out, date hoặc None
 
@@ -55,7 +42,7 @@ class DatabaseHandler:
         """Ghi thời gian check-in hoặc check-out vào database"""
         # Chuyển check_in_time từ chuỗi thành datetime để so sánh
         current_time = datetime.strptime(check_in_time, "%Y-%m-%d %H:%M:%S")
-        last_attendance = self.get_last_attendance_in_date(emp_id)
+        last_attendance = self.get_last_attendance(emp_id)
 
         if last_attendance:
             last_check_in = last_attendance['check_in']  # Đã là datetime từ DB
