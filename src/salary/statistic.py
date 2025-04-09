@@ -68,6 +68,10 @@ class StatisticApp:
         stats_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
 
         title_l = tk.Label(stats_frame, text="Thống Kê Nhân Sự", font=("Times New Roman", 20, "bold"), fg="#333333", bg=self.bg_color)
+
+        # Title
+        title_l = tk.Label(stats_frame, text="Thống Kê Nhân Sự", font=("Times New Roman", 25, "bold"), fg="#333333", bg=self.bg_color)
+
         title_l.pack(anchor="center", pady=(10, 20))
 
         summary_cards_frame = tk.Frame(stats_frame, bg=self.bg_color)
