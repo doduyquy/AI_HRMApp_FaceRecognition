@@ -12,7 +12,7 @@ CREATE TABLE Employees (
     phone_number VARCHAR(15),
     hired_date DATE,
     position VARCHAR(255),
-    status ENUM('active', 'inactive') DEFAULT 'active'
+    status ENUM('Đang làm việc', 'Đã nghỉ') DEFAULT 'Đang làm việc'
 );
 
 -- Tạo bảng Departments (không có khóa ngoại manager_id trước)
@@ -54,33 +54,31 @@ CREATE TABLE Face_Data (
 -- Tạo bảng Role
 CREATE TABLE Role (
     role_id INT PRIMARY KEY AUTO_INCREMENT,
-    role_name VARCHAR(50) NOT NULL UNIQUE,
-    description TEXT
+    role_name VARCHAR(50) NOT NULL UNIQUE
 );
 
--- Tạo bảng Employee_Role
-CREATE TABLE Employee_Role (
-    emp_id INT,
-    role_id INT,
-    PRIMARY KEY (emp_id, role_id),
-    FOREIGN KEY (emp_id) REFERENCES Employees(emp_id),
-    FOREIGN KEY (role_id) REFERENCES Role(role_id)
+CREATE TABLE Users (
+	emp_id int primary key auto_increment,
+    user_name varchar(50),
+    passwd varchar(255),
+    status int not null default 1,
+    role_id int,
+    foreign key (emp_id) references Employees(emp_id),
+    foreign key (role_id) references Role(role_id)
 );
 
--- Tạo bảng Permission
-CREATE TABLE Permission (
-    permission_id INT PRIMARY KEY AUTO_INCREMENT,
-    permission_name VARCHAR(50) NOT NULL UNIQUE,
-    description TEXT
+CREATE TABLE Function_List (
+	function_id int primary key,
+    function_name varchar(255)
 );
 
--- Tạo bảng Role_Permission
-CREATE TABLE Role_Permission (
-    role_id INT,
-    permission_id INT,
-    PRIMARY KEY (role_id, permission_id),
+CREATE TABLE Role_Details (
+    role_id int,
+    function_id int,
+    action varchar(255),
+    PRIMARY KEY (role_id, function_id), 
     FOREIGN KEY (role_id) REFERENCES Role(role_id),
-    FOREIGN KEY (permission_id) REFERENCES Permission(permission_id)
+    FOREIGN KEY (function_id) REFERENCES Function_List(function_id)
 );
 
 -- Tạo bảng Payroll
@@ -98,7 +96,7 @@ CREATE TABLE Payroll (
     FOREIGN KEY (emp_id) REFERENCES Employees(emp_id)
 );
 
--- Stored Procedure để cập nhật Payroll ----- ERROR ----
+-- Stored Procedure để cập nhật Payroll
 DELIMITER //
 CREATE PROCEDURE UpdatePayroll(
     IN p_emp_id INT,
@@ -165,45 +163,62 @@ VALUES
 
 INSERT INTO Employees (emp_id, last_name, first_name, dep_id, email, phone_number, hired_date, position, status)
 VALUES 
-	(1, 'Võ Thị', 'Thu Luyện ', 1, 'thuluyen234@gmail.com', '0123456789', '2025-01-01', 'Developer', 'active'),
-    (2, 'Nguyễn Thị', 'Ngọc Tú', 2, 'ngoctu28012005@gmail.com', '0377810714', '2025-01-15', 'Manager', 'active'),
-    (3, 'Trần Thị', 'Xuân Thanh', 3, 'xuanthanh234@gmail.com', '0123456789', '2025-02-01', 'Employee', 'active'),
-    (4, 'Phạm', 'Thanh An', 3, 'thanhanh456@gmail.com', '0123456894', '2024-10-25', 'Employee', 'inactive'),
-    (5, 'Đỗ', 'Duy Quý', 1, 'duyquy895@gmail.com', '0123567945', '2025-01-01', 'Developer', 'active');
+	(1, 'Võ Thị Thu', 'Luyện ', 3, 'thuluyen234@gmail.com', '0123456789', '2025-01-01', 'Employee', 'Đang làm việc'),
+    (2, 'Nguyễn Thị Ngọc', 'Tú', 3, 'ngoctu28012005@gmail.com', '0377810714', '2025-01-15', 'Employee', 'Đang làm việc'),
+    (3, 'Trần Thị Xuân', 'Thanh', 3, 'xuanthanh234@gmail.com', '0123456789', '2025-02-01', 'Employee', 'Đang làm việc'),
+    (4, 'Phạm Thanh', 'An', 3, 'thanhanh456@gmail.com', '0123456894', '2024-10-25', 'Employee', 'Đã nghỉ'),
+    (5, 'Đỗ Duy ', 'Quý', 3, 'duyquy895@gmail.com', '0123567945', '2025-01-01', 'Employee', 'Đang làm việc'),
+    (6, 'Nguyễn Thanh', 'Ngân', 1, 'thanhngan25@gmail.com', '0356897424', '2024-10-01', 'Manager', 'Đang làm việc'),
+    (7, 'Phạm Như', 'An', 2, 'nhuan501@gmai.com', '0867456231', '2024-10-01', 'IT', 'Đang làm việc');
 
 UPDATE Departments SET manager_id = 1 WHERE dep_id = 1;
 
 INSERT INTO Face_Data (emp_id, face_encoding, angle)
 VALUES (1, 0x1234567890ABCDEF, 'front');
 
-INSERT INTO Role (role_id, role_name, description)
-VALUES 
-    (1, 'IT', 'Chịu trách nhiệm bảo trì hệ thống và xem báo cáo'),
-    (2, 'Manager', 'Quản lý hoạt động, quản lý người dùng và chỉnh sửa bản ghi'),
-    (3, 'Employee', 'Quyền truy cập hạn chế để xem báo cáo cơ bản');
+INSERT INTO Function_List (function_id, function_name)
+VALUES
+    (1, 'Quản lý nhân viên'),
+    (2, 'Quản lý phòng ban'),
+    (3, 'Chấm công'),
+    (4, 'Quản lý dữ liệu khuôn mặt'),
+    (5, 'Phân quyền'),
+    (6, 'Quản lý tài khoản'),
+    (7, 'Quản lý lương');
 
-INSERT INTO Employee_Role (emp_id, role_id) 
-VALUES 	
-	(1, 1),
-    (2,2),
-    (3,3),
-    (4,3),
-    (5,1);
+INSERT INTO Role (role_id, role_name)
+VALUES
+	(1, 'admin'),
+    (2, 'manager'),
+    (3, 'employee');
+    
+INSERT INTO Users (emp_id, user_name, passwd, role_id)
+VALUES
+	(1, '1', '$2b$12$C/fO/FquP6H9v4/AetwQ3O2n8am3MDavYvZtA7.GtzjODmN7sA/k6', 3),
+    (2, '2', '$2b$12$C/fO/FquP6H9v4/AetwQ3O2n8am3MDavYvZtA7.GtzjODmN7sA/k6', 3),
+    (3, '3', '$2b$12$C/fO/FquP6H9v4/AetwQ3O2n8am3MDavYvZtA7.GtzjODmN7sA/k6', 3),
+    (4, '4', '$2b$12$C/fO/FquP6H9v4/AetwQ3O2n8am3MDavYvZtA7.GtzjODmN7sA/k6', 3),
+    (5, '5', '$2b$12$C/fO/FquP6H9v4/AetwQ3O2n8am3MDavYvZtA7.GtzjODmN7sA/k6', 3),
+    (6, 'manager', '$2b$12$dMLlaZQueCjMIVob.I5R2eFPsSyMxZPga7QzhsR6re0YZHkjV5/cG', 2),
+    (7, 'admin', '$2b$12$rJRn6wSnYyahuXP3gpo7..Ei0AeYXfVqr3AaQ58wvRzjFh0moQVz', 1);
 
-INSERT INTO Permission (permission_id, permission_name, description)
-VALUES 
-    (1, 'View_Reports', 'Can view attendance reports'),
-    (2, 'Edit_Records', 'Can edit employee records'),
-    (3, 'Manage_Users', 'Can add or remove users');
+INSERT INTO Role_Details (role_id, function_id, action)
+VALUES
+    -- Admin (role_id = 1): Toàn quyền
+    (1, 2, 'view,create,update,delete'), -- Quản lý phòng ban
+    (1, 4, 'view,create,update,delete'), -- Quản lý dữ liệu khuôn mặt
+    (1, 5, 'view,create,update,delete'), -- Phân quyền
+    (1, 6, 'view,create,update,delete'), -- Quản lý tài khoản
 
--- Role_Permission
-INSERT INTO Role_Permission (role_id, permission_id)
-VALUES 
-    (1, 1),  -- IT có quyền View_Reports
-    (2, 1),  -- Manager có quyền View_Reports
-    (2, 2),  -- Manager có quyền Edit_Records
-    (2, 3),  -- Manager có quyền Manage_Users
-    (3, 1);  -- Employee có quyền View_Reports
+    -- Manager (role_id = 2): Quyền hạn chế
+    (2, 1, 'view,create,update,delete'), -- Quản lý nhân viên
+    (2, 3, 'view'),              -- Xem lịch sử chấm công
+    (2, 7, 'view'), -- Quản lý lương
+
+    -- Employee (role_id = 3): Quyền xem chấm công và lương
+    (3, 3, 'view'), -- Xem lịch sử chấm công
+    (3, 7, 'view'); -- Xem lương
+	
 
 -- Thêm dữ liệu cho tháng 03/2025 (Thứ Hai đến Thứ Sáu)
 INSERT INTO Attendance (emp_id, check_in, check_out, date)
