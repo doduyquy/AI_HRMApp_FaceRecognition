@@ -1,14 +1,14 @@
 import mysql.connector
 from mysql.connector import errorcode
-from datetime import datetime
+from datetime import datetime, time
 
 class DatabaseHandler:
     def __init__(self):
         try:
             self.conn = mysql.connector.connect(
                 host='localhost',
-                #user='nii',  
-                user='root',  
+                user='nii',  
+                # user='root',  
                 password='12345678',  
                 database='Face_Recognition'
             )
@@ -43,13 +43,13 @@ class DatabaseHandler:
         
         """Lấy bản ghi chấm công gần nhất của nhân viên tron ngày"""
         query = """
-            SELECT check_in, check_out, date
+            SELECT attendance_id, check_in, check_out, date
             FROM Attendance 
             WHERE emp_id = %s AND date = %s
         """
         self.cursor.execute(query, (emp_id, date))
         result = self.cursor.fetchone()
-        return result  # Trả về dict với check_in, check_out, date hoặc None
+        return result  # Trả về dict với attendance_id, check_in, check_out, date hoặc None
 
     def write_check_in_to_db(self, emp_id, check_in_time):
         """Ghi thời gian check-in hoặc check-out vào database"""
@@ -146,6 +146,105 @@ class DatabaseHandler:
             })
         return attendance_list
 
+    def calculate_and_update_all_hours(self):
+        query = "SELECT attendance_id, check_in, check_out FROM Attendance"
+        self.cursor.execute(query, ())
+        results = self.cursor.fetchall()
+        for row in results:
+            attendance_id = row["attendance_id"]
+            check_in = row["check_in"]
+            check_out = row["check_out"]
+
+            if check_in and check_out:
+                # Định nghĩa khoảng thời gian nghỉ trưa
+                lunch_start = datetime.combine(check_in.date(), time(12, 0))  # 12:00
+                lunch_end = datetime.combine(check_in.date(), time(13, 0))    # 13:00
+
+                # Tính tổng số giờ làm việc (bao gồm cả giờ nghỉ trưa ban đầu)
+                total_duration = check_out - check_in
+                total_hours = total_duration.total_seconds() / 3600
+
+                # Kiểm tra xem thời gian làm việc có bao gồm giờ nghỉ trưa không
+                lunch_hours = 0
+                if check_in < lunch_end and check_out > lunch_start:
+                    # Tính thời gian nghỉ trưa thực tế bị chồng lấn
+                    lunch_overlap_start = max(check_in, lunch_start)
+                    lunch_overlap_end = min(check_out, lunch_end)
+                    lunch_hours = (lunch_overlap_end - lunch_overlap_start).total_seconds() / 3600
+
+                # Tổng giờ làm việc thực tế (trừ giờ nghỉ trưa)
+                actual_hours = total_hours - lunch_hours
+
+                # Tính work_hours và overtime_hours
+                if actual_hours <= 8:
+                    work_hours = actual_hours
+                    overtime_hours = 0
+                else:
+                    work_hours = 8
+                    overtime_hours = actual_hours - 8
+                # print(f"{attendance_id}: {work_hours} - {overtime_hours}")
+                # Cập nhật vào database
+                update_query = """
+                    UPDATE Attendance 
+                    SET work_hours = %s, overtime_hours = %s 
+                    WHERE attendance_id = %s
+                """
+                self.cursor.execute(update_query, (work_hours, overtime_hours, attendance_id))
+                print(f"Updated attendance_id {attendance_id}: work_hours={work_hours:.2f}, overtime_hours={overtime_hours:.2f}")
+        # Commit thay đổi
+        self.conn.commit()
+
+    def calculate_and_update_hours_by_id(self, attendance_id):
+        query = "SELECT check_in, check_out FROM Attendance WHERE attendance_id = %s"
+        self.cursor.execute(query, (attendance_id,))
+        results = self.cursor.fetchall()
+        
+        if results:  # Kiểm tra xem có bản ghi nào không
+            row = results[0]  # Lấy bản ghi đầu tiên
+            check_in = row["check_in"]
+            check_out = row["check_out"]
+
+            if check_in and check_out:
+                # Định nghĩa khoảng thời gian nghỉ trưa
+                lunch_start = datetime.combine(check_in.date(), time(12, 0))  # 12:00
+                lunch_end = datetime.combine(check_in.date(), time(13, 0))    # 13:00
+
+                # Tính tổng số giờ làm việc (bao gồm cả giờ nghỉ trưa ban đầu)
+                total_duration = check_out - check_in
+                total_hours = total_duration.total_seconds() / 3600
+
+                # Kiểm tra xem thời gian làm việc có bao gồm giờ nghỉ trưa không
+                lunch_hours = 0
+                if check_in < lunch_end and check_out > lunch_start:
+                    lunch_overlap_start = max(check_in, lunch_start)
+                    lunch_overlap_end = min(check_out, lunch_end)
+                    lunch_hours = (lunch_overlap_end - lunch_overlap_start).total_seconds() / 3600
+
+                # Tổng giờ làm việc thực tế (trừ giờ nghỉ trưa)
+                actual_hours = total_hours - lunch_hours
+
+                # Hàm làm tròn về bội số của 0.5
+                def round_to_half(number):
+                    return round(number * 2) / 2
+
+                # Tính work_hours và overtime_hours, làm tròn về .0 hoặc .5
+                if actual_hours <= 8:
+                    work_hours = round_to_half(actual_hours)
+                    overtime_hours = 0.0
+                else:
+                    work_hours = 8.0  # Giờ làm bình thường tối đa là 8
+                    overtime_hours = round_to_half(actual_hours - 8)
+
+                # Cập nhật vào database
+                update_query = """
+                    UPDATE Attendance 
+                    SET work_hours = %s, overtime_hours = %s 
+                    WHERE attendance_id = %s
+                """
+                self.cursor.execute(update_query, (work_hours, overtime_hours, attendance_id))
+                print(f"Updated attendance_id {attendance_id}: work_hours={work_hours:.1f}, overtime_hours={overtime_hours:.1f}")
+        
+        self.conn.commit()
     ### Import from EXCEL ###
     def import_employees(self, employees_data):
         # Nhập danh sách nhân viên vào bảng Employees
@@ -194,6 +293,7 @@ class DatabaseHandler:
             self.conn.rollback()
             raise
 
+    
 
     def testing(self):
         """Hàm kiểm tra"""
@@ -205,6 +305,8 @@ class DatabaseHandler:
 
 # Khởi tạo đối tượng
 handle = DatabaseHandler()
+# handle.calculate_and_update_hours()
+# handle.close()
 # print(handle.get_last_attendance("1"))
 
 

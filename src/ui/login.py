@@ -69,7 +69,8 @@ def signin():
         return
 
     # Manager 
-    elif emp_id == "manager" and password_input == "manager":
+    elif emp_id == "m" and password_input == "m":
+    # elif emp_id == "manager" and password_input == "manager":
         show_welcome_screen("Manager", lambda: [manager_root := tk.Tk(), manager.ManagerApp(manager_root), manager_root.mainloop()])
         return
 
@@ -77,7 +78,7 @@ def signin():
     try:
         conn = mysql.connector.connect(
             host="localhost",
-            user="root",
+            user="nii",
             password="12345678",
             database="Face_Recognition"
         )

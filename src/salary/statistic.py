@@ -75,7 +75,7 @@ class StatisticApp:
         stats_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
 
         # Title
-        title_l = tk.Label(stats_frame, text="Thống Kê Nhân Sự", font=("Times New Roman", 20, "bold"), fg="#333333", bg=self.bg_color)
+        title_l = tk.Label(stats_frame, text="Thống Kê Nhân Sự", font=("Times New Roman", 25, "bold"), fg="#333333", bg=self.bg_color)
         title_l.pack(anchor="center", pady=(10, 20))
 
         # Summary Cards (Tổng quan)

@@ -28,14 +28,18 @@ def attendance(ui, best_match_id, best_match_name):
 
     # Tránh nhận diện liên tục (trong khoảng 10 giây)
     if last_time is None or (current_time - last_time).total_seconds() > 10:
+
+        # a dict: attendance_id, check_in, check_out, date || None
         last_attendance = handleDB.handle.get_last_attendance_in_date(emp_id)
         
         print(f"last_attendance: {last_attendance}")
 
         if last_attendance is None:  # Chưa có bản ghi nào trong ngày hiện tại
+           
             # Check-in mới
             handleDB.handle.write_check_in_to_db(emp_id, current_time_str)
             print(f"Check-in: {emp_id} at {current_time_str}")
+
             # Thêm vào dòng đầu tiên của bảng trên giao diện
             ui.add_attendance_record(
                 stt_counter,
@@ -50,7 +54,9 @@ def attendance(ui, best_match_id, best_match_name):
             return True, f"Check-in thành công cho {best_match_id}-{best_match_name}"
 
         elif last_attendance['check_out'] is None:  # Đã check-in nhưng chưa check-out
+           
             print(f"check-out: {last_attendance['check_out']}")
+
             # Check-out
             last_check_in = last_attendance['check_in']
             time_diff = (current_time - last_check_in).total_seconds()
@@ -58,7 +64,12 @@ def attendance(ui, best_match_id, best_match_name):
 
             # Kiểm tra thời gian check-out tối thiểu sau 1 giờ
             if time_diff >= MIN_CHECKOUT_DELAY:
+
+                # Cập nhật thời gian check-out của nhân viên vào db
                 handleDB.handle.update_check_out_to_db(emp_id, current_time_str, current_date)
+                # Tính thời gian làm việc, tăng ca của nhân viên vừa checkout
+                handleDB.handle.calculate_and_update_hours_by_id(last_attendance["attendance_id"])
+                
                 print(f"Check-out: {best_match_id} at {current_time_str}")
                 
                 # Cập nhật bảng trên giao diện (tìm bản ghi và thêm thời gian check-out)

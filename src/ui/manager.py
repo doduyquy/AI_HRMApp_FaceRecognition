@@ -8,6 +8,14 @@ import datetime
 from tkcalendar import DateEntry
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
+from pathlib import Path
+# Thêm thư mục src vào sys.path
+src_dir = str(Path(__file__).resolve().parent.parent)  # Lên 2 cấp để tới src
+if src_dir not in sys.path:
+    sys.path.append(src_dir)
+from src.database import handleDB
+
 import src.salary.excel_utils  
 import src.salary.salary  
 import src.salary.statistic  
@@ -42,7 +50,7 @@ class ManagerApp:
 
         self.conn = mysql.connector.connect(
             host="localhost", 
-            user="root",
+            user="nii",
             password="12345678",
             database="Face_Recognition"
         )
@@ -336,7 +344,7 @@ class ManagerApp:
                             ('Treeheading.text', {'sticky': 'we'})]})]})])
 
         style.configure("Treeview.Heading",
-                        font=("Times New Roman", 10, "bold"),
+                        font=("Times New Roman", 11, "bold"),
                         background="#9fd7f9",
                         foreground="#000",
                         relief="flat",
@@ -912,7 +920,7 @@ class ManagerApp:
         self.current_content.pack(fill=tk.BOTH, expand=True)
 
         style = ttk.Style()
-        style.configure("Treeview.Heading", font=("Times New Roman", 10, "bold"))
+        style.configure("Treeview.Heading", font=("Times New Roman", 11, "bold"))
 
         button_frame = tk.Frame(self.current_content, bg=self.bg_color)
         button_frame.pack(fill=tk.X, pady=2, padx=5)
@@ -996,7 +1004,7 @@ class ManagerApp:
         search_button.pack(side=tk.RIGHT, padx=(2, 5))
 
         columns = ("STT", "Mã NV", "Nhân Viên", "Ngày", "Check-in", "Check-out", "Giờ Làm", "Giờ Tăng Ca")
-        self.attendance_tree = ttk.Treeview(self.current_content, columns=columns, show="headings", height=20)
+        self.attendance_tree = ttk.Treeview(self.current_content, columns=columns, show="headings", height=25)
         for col in columns:
             self.attendance_tree.heading(col, text=col)
         self.attendance_tree.column("STT", width=50, anchor="center")
@@ -1012,6 +1020,7 @@ class ManagerApp:
         self.load_attendance_data()
 
     def load_attendance_data(self):
+        # handleDB.handle.calculate_and_update_hours()
         if not hasattr(self, 'attendance_tree') or not self.attendance_tree.winfo_exists():
             return
 
@@ -1104,14 +1113,14 @@ class ManagerApp:
         filters_inner_frame = tk.Frame(filter_frame, bg=self.bg_color)
         filters_inner_frame.pack(anchor="center")
 
-        month_label = tk.Label(filters_inner_frame, text="Tháng:", font=("Times New Roman", 11), bg=self.bg_color)
+        month_label = tk.Label(filters_inner_frame, text="Tháng:", font=("Times New Roman", 14), bg=self.bg_color)
         month_label.pack(side=tk.LEFT, padx=(0, 5))
         self.month_var = tk.StringVar(value="Tất cả")
         month_combobox = ttk.Combobox(filters_inner_frame, textvariable=self.month_var, values=["Tất cả"] + [str(i) for i in range(1, 13)], state="readonly", width=10)
         month_combobox.pack(side=tk.LEFT, padx=5)
         month_combobox.bind("<<ComboboxSelected>>", self.filter_salary)
 
-        year_label = tk.Label(filters_inner_frame, text="Năm:", font=("Times New Roman", 11), bg=self.bg_color)
+        year_label = tk.Label(filters_inner_frame, text="Năm:", font=("Times New Roman", 14), bg=self.bg_color)
         year_label.pack(side=tk.LEFT, padx=(10, 5))
         self.year_var = tk.StringVar(value="Tất cả")
         current_year = 2025
@@ -1124,10 +1133,12 @@ class ManagerApp:
         search_img = Image.open(os.path.join(img_dir, "search.png")).resize((22, 22), Image.Resampling.LANCZOS)
         excel_img = Image.open(os.path.join(img_dir, "excel.png")).resize((22, 22), Image.Resampling.LANCZOS)
         salary_img = Image.open(os.path.join(img_dir, "salary.png")).resize((22, 22), Image.Resampling.LANCZOS)
+        edit_img = Image.open(os.path.join(img_dir, "edit.png")).resize((22, 22), Image.Resampling.LANCZOS)
 
         search_icon = ImageTk.PhotoImage(search_img)
         excel_icon = ImageTk.PhotoImage(excel_img)
         salary_icon = ImageTk.PhotoImage(salary_img)
+        edit_icon = ImageTk.PhotoImage(edit_img)
 
         search_frame = tk.Frame(filters_inner_frame, bg="white", relief="flat", highlightthickness=1, highlightbackground="#4c84f5")
         search_frame.pack(side=tk.LEFT, padx=10, ipady=4)
@@ -1161,21 +1172,22 @@ class ManagerApp:
         )
         search_button.image = search_icon
         search_button.pack(side=tk.RIGHT, padx=(2, 5))
-
-        excel_button = tk.Button(filters_inner_frame, 
-            text="Excel", 
-            image=excel_icon, 
+        
+        # Button Sửa thông tin lương (khi chọn row)
+        edit_button = tk.Button(filters_inner_frame, 
+            text="Sửa", 
+            image=edit_icon,
             compound=tk.TOP,
-            command=lambda: src.salary.excel_utils.export_to_excel(self.salary_tree, "Payroll"),  # Sửa: Thêm 'src.'
+            command=self.edit_salary_popup,
             bg="#f7f8fa", 
             bd=0, 
             width=60, 
             height=60,
             font=("Times New Roman", 9), 
             relief="flat",
-            activebackground="#65f06b")
-        excel_button.image = excel_icon
-        excel_button.pack(side=tk.LEFT, padx=3)
+            activebackground="#ffd966")
+        edit_button.image = edit_icon
+        edit_button.pack(side=tk.LEFT, padx=3)
 
         salary_button = tk.Button(filters_inner_frame, 
             text="Lương", 
@@ -1192,6 +1204,21 @@ class ManagerApp:
         salary_button.image = salary_icon
         salary_button.pack(side=tk.LEFT, padx=3)
 
+        excel_button = tk.Button(filters_inner_frame, 
+            text="Excel", 
+            image=excel_icon, 
+            compound=tk.TOP,
+            command=lambda: src.salary.excel_utils.export_to_excel(self.salary_tree, "Payroll"),  # Sửa: Thêm 'src.'
+            bg="#f7f8fa", 
+            bd=0, 
+            width=60, 
+            height=60,
+            font=("Times New Roman", 9), 
+            relief="flat",
+            activebackground="#65f06b")
+        excel_button.image = excel_icon
+        excel_button.pack(side=tk.LEFT, padx=3)
+        
         style = ttk.Style()
         style.theme_use("clam")
 
@@ -1203,7 +1230,7 @@ class ManagerApp:
                             ('Treeheading.text', {'sticky': 'we'})]})]})])
 
         style.configure("Treeview.Heading",
-                        font=("Times New Roman", 10, "bold"),
+                        font=("Times New Roman", 11, "bold"),
                         background="#9fd7f9",
                         foreground="#000",
                         relief="flat",
@@ -1246,10 +1273,14 @@ class ManagerApp:
         self.load_salary_data()
 
     def load_salary_data(self, month=None, year=None, search_term=None):
+        print("In load_salary_data")
+        
         if not self.conn.is_connected():
             self.conn.reconnect()
         for item in self.salary_tree.get_children():
             self.salary_tree.delete(item)
+
+        print("load_salary_data: after connect to db")
 
         try:
             query = """
@@ -1279,7 +1310,12 @@ class ManagerApp:
             self.cursor.execute(query, params)
             rows = self.cursor.fetchall()
 
+
             for idx, row in enumerate(rows, 1):
+                
+                # Print the result:
+                print(f"Result:  + {row['emp_id']} {row['last_name']} {row['first_name']}")
+
                 emp_id = row['emp_id']
                 full_name = f"{row['last_name']} {row['first_name']}"
                 month_year = row['month_year'].strftime("%m/%Y") if row['month_year'] else "N/A"
@@ -1303,6 +1339,101 @@ class ManagerApp:
                 messagebox.showinfo("Thông báo", "Không có dữ liệu lương!")
         except mysql.connector.Error as e:
             messagebox.showerror("Lỗi", f"Lỗi kết nối cơ sở dữ liệu: {e}")
+    
+    # Sửa thông tin lương của nhân viên được chọn: 
+    def edit_salary_popup(self):
+        selected_item = self.salary_tree.selection()
+        if not selected_item:
+            messagebox.showwarning("Chú ý", "Vui lòng chọn một dòng để sửa.")
+            return
+
+        item = self.salary_tree.item(selected_item)
+        values = item['values']
+
+        emp_id = values[1]
+        emp_name = values[2]
+        month_year_str = values[3]  # "MM/YYYY"
+        month, year = map(int, month_year_str.split("/"))
+
+        base_salary = values[4].replace(",", "")
+        time_salary = values[5].replace(",", "")
+        overtime_salary = values[6].replace(",", "")
+
+        # Tạo popup căn giữa màn hình
+        popup = tk.Toplevel()
+        popup.title("Sửa Lương Nhân Viên")
+        popup.resizable(False, False)
+
+        popup_width = 400
+        popup_height = 350
+        screen_width = popup.winfo_screenwidth()
+        screen_height = popup.winfo_screenheight()
+        x_pos = int((screen_width - popup_width) / 2)
+        y_pos = int((screen_height - popup_height) / 2)
+        popup.geometry(f"{popup_width}x{popup_height}+{x_pos}+{y_pos}")
+
+        label_font = ("Times New Roman", 12)
+        entry_font = ("Times New Roman", 12)
+
+        frame = tk.Frame(popup, padx=20, pady=20)
+        frame.pack()
+
+        def create_row(row, label_text, initial_value, state='normal'):
+            label = tk.Label(frame, text=label_text, font=label_font, anchor='e', width=15)
+            label.grid(row=row, column=0, padx=(20, 10), pady=8)
+
+            entry = tk.Entry(frame, font=entry_font, width=25)
+            entry.grid(row=row, column=1, padx=(10, 20), pady=8)
+
+            entry.insert(0, initial_value)
+
+            if state == 'readonly':
+                entry.config(state='readonly')
+            else:
+                entry.config(state=state)
+
+            return entry
+
+
+        entry_emp_id = create_row(0, "Mã nhân viên:", emp_id, 'readonly')
+        entry_emp_name = create_row(1, "Tên nhân viên:", emp_name, 'readonly')
+        entry_month_year = create_row(2, "Tháng/Năm:", month_year_str, 'readonly')
+
+        entry_base = create_row(3, "Lương cơ bản:", base_salary)
+        entry_time = create_row(4, "Lương theo giờ:", time_salary)
+        entry_ot = create_row(5, "Lương tăng ca:", overtime_salary)
+
+        def update_salary():
+            try:
+                new_base = float(entry_base.get())
+                new_time = float(entry_time.get())
+                new_ot = float(entry_ot.get())
+
+                query = """
+                    UPDATE Payroll 
+                    SET base_salary = %s, time_salary = %s, overtime_salary = %s 
+                    WHERE emp_id = %s AND MONTH(month_year) = %s AND YEAR(month_year) = %s
+                """
+                self.cursor.execute(query, (new_base, new_time, new_ot, emp_id, month, year))
+                self.conn.commit()
+
+                messagebox.showinfo("Thành công", "Cập nhật lương thành công!")
+                popup.destroy()
+                self.load_salary_data(
+                    month=self.month_var.get(), 
+                    year=self.year_var.get(), 
+                    search_term=self.search_var.get().strip().lower()
+                )
+            except Exception as e:
+                messagebox.showerror("Lỗi", f"Lỗi khi cập nhật lương: {e}")
+
+        update_btn = tk.Button(
+            frame, text="Cập Nhật", font=("Times New Roman", 12, "bold"),
+            bg="#4caf50", fg="white", padx=10, pady=5, command=update_salary
+        )
+        update_btn.grid(row=6, column=0, columnspan=2, pady=15)
+
+
 
     def filter_salary(self, event=None):
         month = self.month_var.get()
@@ -1336,7 +1467,7 @@ class ManagerApp:
                 self.conn.close()
             self.conn = mysql.connector.connect(
                 host="localhost", 
-                user="root",
+                user="nii",
                 password="12345678",
                 database="Face_Recognition"
             )
