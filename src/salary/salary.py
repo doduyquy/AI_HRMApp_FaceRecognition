@@ -47,11 +47,11 @@ def get_employee_details():
 # Hàm tính lương
 def calculate_salary(emp_id, total_work_hours, total_overtime_hours, employee_details):
     emp_info = employee_details.get(emp_id, {})
-    position = emp_info.get('position', 'Worker')
+    position = emp_info.get('position', 'Employee')  
 
     HOURLY_RATE = 100000  # Lương giờ cơ bản
     OVERTIME_RATE = 200000  # Lương giờ làm thêm
-    FIXED_SALARY = {"Manager": 5000000, "Developer": 3000000, "Worker": 0}
+    FIXED_SALARY = {"Manager": 5000000, "Developer": 3000000, "Employee": 0}  
 
     fixed_salary = FIXED_SALARY.get(position, 0)
     time_salary = total_work_hours * HOURLY_RATE

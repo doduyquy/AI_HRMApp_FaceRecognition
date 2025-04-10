@@ -1852,7 +1852,7 @@ class ManagerApp:
             base_salary = row['base_salary'] if row['base_salary'] is not None else 0
             time_salary = row['time_salary'] if row['time_salary'] is not None else 0
             overtime_salary = row['overtime_salary'] if row['overtime_salary'] is not None else 0
-            total_salary = base_salary + time_salary + overtime_salary
+            total_salary = base_salary + overtime_salary
 
             self.salary_tree.insert("", "end", values=(
                 idx, emp_id, full_name, month_year,
