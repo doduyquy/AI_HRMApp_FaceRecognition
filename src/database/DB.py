@@ -11,7 +11,7 @@ def connect_to_database():
     try:
         conn = mysql.connector.connect(
             host='localhost',
-            user='root',
+            user='nii',
             password='12345678',
             database='Face_Recognition'
         )

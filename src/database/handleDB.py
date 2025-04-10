@@ -86,6 +86,34 @@ class DatabaseHandler:
         """
         self.cursor.execute(query, (check_out_time, check_out_time, emp_id, date))
         self.conn.commit()
+    # Return full_name of employee by emp_id
+
+ 
+
+    def get_name_by_id(self, emp_id):
+        """Lấy tên nhân viên từ ID"""
+        query = """
+            SELECT CONCAT(last_name, ' ', first_name) AS full_name
+            FROM Employees
+            WHERE emp_id = %s
+        """
+        self.cursor.execute(query, (emp_id,))
+        result = self.cursor.fetchone()
+        return result['full_name'] if result else None
+
+    def get_last_attendance_in_date(self, emp_id, date=None):
+        if date is None:
+            date = datetime.now().date()
+        """Lấy bản ghi chấm công gần nhất của nhân viên tron ngày"""
+        query = """
+            SELECT check_in, check_out, date
+            FROM Attendance 
+            WHERE emp_id = %s AND date = %s
+        """
+        self.cursor.execute(query, (emp_id, date))
+        result = self.cursor.fetchone()
+        return result  # Trả về dict với check_in, check_out, date hoặc None
+
 
     ### RECOGNIZE UI ###
     # Thêm phương thức mới để lấy tất cả bản ghi chấm công
