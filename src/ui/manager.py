@@ -1716,8 +1716,10 @@ class ManagerApp:
         img_dir = os.path.join(BASE_DIR, "..", "img")
         search_img = Image.open(os.path.join(img_dir, "search.png")).resize((22, 22), Image.Resampling.LANCZOS)
         reset_img = Image.open(os.path.join(img_dir, "reset.png")).resize((22, 22), Image.Resampling.LANCZOS)
+        salary_img = Image.open(os.path.join(img_dir, "salary.png")).resize((22, 22), Image.Resampling.LANCZOS)
         search_icon = ImageTk.PhotoImage(search_img)
         reset_icon = ImageTk.PhotoImage(reset_img)
+        salary_icon = ImageTk.PhotoImage(salary_img)
 
         search_frame = tk.Frame(filters_inner_frame, bg="white", relief="flat", highlightthickness=1, highlightbackground="#4c84f5")
         search_frame.pack(side=tk.LEFT, padx=10, ipady=4)
@@ -1768,6 +1770,22 @@ class ManagerApp:
             activebackground="#7d8e96")
         reset_button.image = reset_icon 
         reset_button.pack(side=tk.LEFT, padx=3)
+
+        # Tính lương
+        salary_button = tk.Button(filters_inner_frame, 
+            text="Lương", 
+            image=salary_icon, 
+            compound=tk.TOP,
+            command=self.start_calculate_salary, 
+            bg="#f7f8fa", 
+            bd=0, 
+            width=60, 
+            height=60,
+            font=("Times New Roman", 9), 
+            relief="flat",
+            activebackground="#ffcc00")
+        salary_button.image = salary_icon
+        salary_button.pack(side=tk.LEFT, padx=3)
 
         # Cấu hình Treeview
         style = ttk.Style()
@@ -1866,31 +1884,36 @@ class ManagerApp:
 
     # Bắt đầu tính lương
     def start_calculate_salary(self):
-        self.root.config(cursor="wait")  
-        messagebox.showinfo("Thông báo", "Đang tính lương, vui lòng chờ...")  
+        if not self.conn or not self.conn.is_connected():
+            messagebox.showerror("Lỗi", "Không thể kết nối đến cơ sở dữ liệu!")
+            return
+        self.root.config(cursor="wait")
+        messagebox.showinfo("Thông báo", "Đang tính lương, vui lòng chờ...")
         thread = threading.Thread(target=self.calculate_salary, daemon=True)
         thread.start()
 
-    # Tính lương
     def calculate_salary(self):
         try:
-            success = src.salary.salary.calculate_and_update_payroll() 
-            self.root.after(0, lambda: self.on_calculate_complete(success))  
+            success = DB.calculate_and_update_payroll(self.conn, self.cursor)
+            self.root.after(0, lambda: self.on_calculate_complete(success))
         except Exception as e:
-            self.root.after(0, lambda: messagebox.showerror("Lỗi", f"Lỗi khi tính lương: {str(e)}"))
+            self.root.config(cursor="")  # Reset cursor ngay lập tức
+            messagebox.showerror("Lỗi", f"Lỗi khi tính lương: {str(e)}")
+            if self.conn and self.conn.is_connected():
+                self.conn.rollback()
 
-    # 
     def on_calculate_complete(self, success):
         self.root.config(cursor="")
         if success:
             messagebox.showinfo("Thành công", "Đã tính toán và cập nhật lương thành công!")
             if self.conn and self.conn.is_connected():
-                DB.close_connection(self.conn, self.cursor)
-            self.conn, self.cursor = DB.connect_to_database()
+                self.conn.commit()
             self.load_salary_data()
-            self.salary_tree.update()
+            self.salary_tree.update_idletasks()
         else:
             messagebox.showerror("Lỗi", "Tính lương thất bại! Vui lòng kiểm tra dữ liệu hoặc kết nối.")
+            if self.conn and self.conn.is_connected():
+                self.conn.rollback()
 
     def show_statistics(self):
         print("Bắt đầu show_statistics")

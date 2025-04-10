@@ -1,5 +1,10 @@
 import mysql.connector
 from mysql.connector import errorcode
+from datetime import datetime, time, timedelta
+import src.salary.salary  
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 #  Kết nối db
 def connect_to_database():
@@ -323,6 +328,117 @@ def get_all_salary(cursor, month=None, year=None, search_term=None):
         return cursor.fetchall()
     except mysql.connector.Error as err:
         return {"error": f"Lỗi MySQL: {err}"}
+
+def calculate_and_update_payroll(conn, cursor, emp_id=None):
+    try:
+        # Định nghĩa các mốc thời gian
+        MORNING_START = time(8, 0)
+        MORNING_END = time(12, 0)
+        AFTERNOON_START = time(13, 0)
+        AFTERNOON_END = time(17, 0)
+        OVERTIME_END = time(22, 0)
+
+        # Lấy dữ liệu chấm công
+        attendance_query = """
+            SELECT attendance_id, emp_id, check_in, check_out, date, work_hours, overtime_hours 
+            FROM Attendance 
+            WHERE check_in IS NOT NULL AND check_out IS NOT NULL
+        """
+        if emp_id:
+            attendance_query += " AND emp_id = %s"
+            cursor.execute(attendance_query, (emp_id,))
+        else:
+            cursor.execute(attendance_query)
+        attendance_records = cursor.fetchall()
+
+        if not attendance_records:
+            print(f"Không có dữ liệu chấm công để tính lương cho {'emp_id: ' + str(emp_id) if emp_id else 'bất kỳ nhân viên nào'}!")
+            return False
+
+        # Tính toán work_hours và overtime_hours
+        for record in attendance_records:
+            attendance_id = record['attendance_id']
+            emp_id_record = record['emp_id']
+            check_in = record['check_in']
+            check_out = record['check_out']
+            date = record['date']
+
+            # Chuyển check_in và check_out từ chuỗi sang datetime nếu cần
+            if isinstance(check_in, str):
+                check_in = datetime.strptime(check_in, '%Y-%m-%d %H:%M:%S')
+            if isinstance(check_out, str):
+                check_out = datetime.strptime(check_out, '%Y-%m-%d %H:%M:%S')
+
+            check_in_time = check_in.time()
+            check_out_time = check_out.time()
+
+            work_hours = 0.0
+            overtime_hours = 0.0
+
+            check_in_dt = check_in
+            check_out_dt = check_out
+
+            if check_out_dt < check_in_dt:
+                check_out_dt = check_out_dt + timedelta(days=1)
+
+            # Tính giờ làm việc buổi sáng
+            morning_start_dt = datetime.combine(check_in.date(), MORNING_START)
+            morning_end_dt = datetime.combine(check_in.date(), MORNING_END)
+            if check_in_dt <= morning_end_dt and check_out_dt >= morning_start_dt:
+                start = max(check_in_dt, morning_start_dt)
+                end = min(check_out_dt, morning_end_dt)
+                morning_hours = (end - start).total_seconds() / 3600
+                work_hours += max(morning_hours, 0)
+
+            # Tính giờ làm việc buổi chiều
+            afternoon_start_dt = datetime.combine(check_in.date(), AFTERNOON_START)
+            afternoon_end_dt = datetime.combine(check_in.date(), AFTERNOON_END)
+            if check_in_dt <= afternoon_end_dt and check_out_dt >= afternoon_start_dt:
+                start = max(check_in_dt, afternoon_start_dt)
+                end = min(check_out_dt, afternoon_end_dt)
+                afternoon_hours = (end - start).total_seconds() / 3600
+                work_hours += max(afternoon_hours, 0)
+
+            # Tính giờ tăng ca
+            overtime_start_dt = datetime.combine(check_in.date(), AFTERNOON_END)
+            overtime_end_dt = datetime.combine(check_in.date(), OVERTIME_END)
+            if check_in_dt <= overtime_end_dt and check_out_dt >= overtime_start_dt:
+                start = max(check_in_dt, overtime_start_dt)
+                end = min(check_out_dt, overtime_end_dt)
+                overtime_hours = (end - start).total_seconds() / 3600
+                overtime_hours = max(overtime_hours, 0)
+
+            # Cập nhật work_hours và overtime_hours vào bảng Attendance
+            cursor.execute("""
+                UPDATE Attendance 
+                SET work_hours = %s, overtime_hours = %s 
+                WHERE attendance_id = %s
+            """, (work_hours, overtime_hours, attendance_id))
+
+        # Lấy danh sách nhân viên và các tháng cần tính lương
+        payroll_query = """
+            SELECT DISTINCT emp_id, DATE_FORMAT(date, '%Y-%m-01') AS month_year
+            FROM Attendance
+            WHERE check_out IS NOT NULL
+        """
+        if emp_id:
+            payroll_query += " AND emp_id = %s"
+            cursor.execute(payroll_query, (emp_id,))
+        else:
+            cursor.execute(payroll_query)
+        payroll_updates = cursor.fetchall()
+
+        # Gọi stored procedure UpdatePayroll cho từng nhân viên và tháng
+        for record in payroll_updates:
+            emp_id_record = record['emp_id']
+            month_year = record['month_year']
+            cursor.execute("CALL UpdatePayroll(%s, %s)", (emp_id_record, month_year))
+
+        print(f"Đã tính toán và cập nhật lương thành công cho {'emp_id: ' + str(emp_id) if emp_id else 'tất cả nhân viên'}!")
+        return True
+    except mysql.connector.Error as err:
+        print(f"Lỗi cơ sở dữ liệu: {err}")
+        return False
     
 #  Đóng kết nối db
 def close_connection(conn, cursor):
