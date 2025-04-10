@@ -2,17 +2,17 @@ import tkinter as tk
 from tkinter import ttk, messagebox, PhotoImage
 from PIL import Image, ImageTk, ImageDraw
 import os
-import sys
-import threading 
 import re
 import datetime
 from tkcalendar import DateEntry
 from pathlib import Path
 
+import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 import src.salary.excel_utils  
 import src.salary.salary  
 import src.salary.statistic  
+import threading 
 
 # Thêm thư mục src vào sys.path
 src_dir = str(Path(__file__).resolve().parent.parent)
@@ -21,16 +21,12 @@ if src_dir not in sys.path:
 
 from database import DB
 
-
 class ManagerApp:
     def __init__(self, root):
-        
-        self.window = tk.Toplevel()
-
         self.root = root
         self.root.title("Quản Lý Nhân Sự")
-        # self.root.state('zoomed')
-        self.root.geometry("1300x650")
+        self.root.state('zoomed')
+        # self.root.geometry("1300x650")
         self.root.resizable(True, True)
 
         self.bg_color = "#f7f8fa"
@@ -790,7 +786,7 @@ class ManagerApp:
             messagebox.showerror("Lỗi", f"Thêm thất bại: {result['error']}")
         else:
             messagebox.showinfo("Thành công", "Đã thêm nhân viên!")
-            self.window.destroy()
+            self.entries["Nhân Viên"].master.master.destroy()
             self.load_employee_data()
     
     # Hàm xử lý email
@@ -813,7 +809,41 @@ class ManagerApp:
 
     # Định dạng email
     def is_valid_email(self, email):
-        return "@" in email and "." in email
+        import re
+        
+        # Kiểm tra nếu email là None hoặc chuỗi rỗng
+        if not email or not isinstance(email, str):
+            return False
+
+        email_pattern = r'^[a-zA-Z0-9][a-zA-Z0-9._-]*@[a-zA-Z0-9][a-zA-Z0-9.-]*\.[a-zA-Z]{2,4}$'
+        
+        # Kiểm tra độ dài tối đa (> 254 ký tự)
+        if len(email) > 254:
+            return False
+            
+        # Kiểm tra định dạng bằng regex
+        if not re.match(email_pattern, email):
+            return False
+            
+        # Không có khoảng trắng
+        if " " in email:
+            return False
+            
+        # Không có hai dấu chấm liên tiếp
+        if ".." in email:
+            return False
+            
+        # Phải có ít nhất một ký tự trước @
+        at_index = email.index('@')
+        if at_index == 0:
+            return False
+            
+        # Phải có dấu chấm sau @
+        domain_part = email[at_index + 1:]
+        if '.' not in domain_part:
+            return False
+            
+        return True
     
     # Nếu lỗi email
     def show_email_error(self, message):
@@ -840,7 +870,40 @@ class ManagerApp:
 
     # Phone
     def is_valid_phone(self, phone):
-        return phone.isdigit() and len(phone) >= 10
+        import re
+        
+        # Nếu phone là None hoặc không phải chuỗi
+        if not phone or not isinstance(phone, str):
+            return False
+        
+        # Loại bỏ khoảng trắng, dấu gạch ngang, dấu ngoặc để xử lý
+        cleaned_phone = re.sub(r'[\s\-\(\)]', '', phone)
+
+        # Biểu thức chính quy cho sđt
+        pattern = r'^(\+84|0)([1-9])\d{8,9}$'
+        
+        # Độ dài cơ bản
+        if len(cleaned_phone) < 10 or len(cleaned_phone) > 13: 
+            return False
+        
+        # Chỉ chứa số và ký tự hợp lệ (+ ở đầu nếu có)
+        if not all(c.isdigit() or (c == '+' and i == 0) for i, c in enumerate(cleaned_phone)):
+            return False
+        
+        # Định dạng bằng regex
+        if not re.match(pattern, cleaned_phone):
+            return False
+        
+        # Số đầu tiên sau mã quốc gia hoặc 0 không phải là 0
+        if cleaned_phone.startswith('+84'):
+            if cleaned_phone[3] == '0':
+                return False
+        elif cleaned_phone.startswith('0'):
+            if len(cleaned_phone) == 10:  # số 10 chữ số phải bắt đầu bằng 09, 08, 07, etc.
+                if cleaned_phone[1] == '0':
+                    return False
+        
+        return True
 
     # Nếu lỗi sđt
     def show_phone_error(self, message):
@@ -1720,12 +1783,8 @@ class ManagerApp:
         img_dir = os.path.join(BASE_DIR, "..", "img")
         search_img = Image.open(os.path.join(img_dir, "search.png")).resize((22, 22), Image.Resampling.LANCZOS)
         reset_img = Image.open(os.path.join(img_dir, "reset.png")).resize((22, 22), Image.Resampling.LANCZOS)
-        salary_img = Image.open(os.path.join(img_dir, "salary.png")).resize((22, 22), Image.Resampling.LANCZOS)
-        edit_img = Image.open(os.path.join(img_dir, "edit.png")).resize((22, 22), Image.Resampling.LANCZOS)
         search_icon = ImageTk.PhotoImage(search_img)
         reset_icon = ImageTk.PhotoImage(reset_img)
-        salary_icon = ImageTk.PhotoImage(salary_img)
-        edit_icon = ImageTk.PhotoImage(edit_img)
 
         search_frame = tk.Frame(filters_inner_frame, bg="white", relief="flat", highlightthickness=1, highlightbackground="#4c84f5")
         search_frame.pack(side=tk.LEFT, padx=10, ipady=4)
@@ -1761,24 +1820,6 @@ class ManagerApp:
         search_button.image = search_icon
         search_button.pack(side=tk.RIGHT, padx=(2, 5))
 
-
-
-        # Button Sửa thông tin lương (khi chọn row)
-        edit_button = tk.Button(filters_inner_frame, 
-            text="Sửa", 
-            image=edit_icon,
-            compound=tk.TOP,
-            command=self.edit_salary_popup,
-            bg="#f7f8fa", 
-            bd=0, 
-            width=60, 
-            height=60,
-            font=("Times New Roman", 9), 
-            relief="flat",
-            activebackground="#65f06b")
-        edit_button.image = edit_icon
-        edit_button.pack(side=tk.LEFT, padx=3)
-
         # Nút Reset
         reset_button = tk.Button(filters_inner_frame,
             text="Làm mới",
@@ -1787,29 +1828,13 @@ class ManagerApp:
             command=self.reset_salary_list, 
             bg="#f7f8fa",
             bd=0,
-            width=60,
-            height=60,
+            width=50,
+            height=50,
             font=("Times New Roman", 9),
             relief="flat",
             activebackground="#7d8e96")
         reset_button.image = reset_icon 
         reset_button.pack(side=tk.LEFT, padx=3)
-
-        # Tính lương
-        salary_button = tk.Button(filters_inner_frame, 
-            text="Lương", 
-            image=salary_icon, 
-            compound=tk.TOP,
-            command=self.start_calculate_salary, 
-            bg="#f7f8fa", 
-            bd=0, 
-            width=60, 
-            height=60,
-            font=("Times New Roman", 9), 
-            relief="flat",
-            activebackground="#ffcc00")
-        salary_button.image = salary_icon
-        salary_button.pack(side=tk.LEFT, padx=3)
 
         # Cấu hình Treeview
         style = ttk.Style()
@@ -1876,7 +1901,7 @@ class ManagerApp:
             base_salary = row['base_salary'] if row['base_salary'] is not None else 0
             time_salary = row['time_salary'] if row['time_salary'] is not None else 0
             overtime_salary = row['overtime_salary'] if row['overtime_salary'] is not None else 0
-            total_salary = base_salary + overtime_salary
+            total_salary = base_salary + time_salary + overtime_salary
 
             self.salary_tree.insert("", "end", values=(
                 idx, emp_id, full_name, month_year,
@@ -1908,118 +1933,31 @@ class ManagerApp:
 
     # Bắt đầu tính lương
     def start_calculate_salary(self):
-        if not self.conn or not self.conn.is_connected():
-            messagebox.showerror("Lỗi", "Không thể kết nối đến cơ sở dữ liệu!")
-            return
-        self.root.config(cursor="wait")
-        messagebox.showinfo("Thông báo", "Đang tính lương, vui lòng chờ...")
+        self.root.config(cursor="wait")  
+        messagebox.showinfo("Thông báo", "Đang tính lương, vui lòng chờ...")  
         thread = threading.Thread(target=self.calculate_salary, daemon=True)
         thread.start()
 
+    # Tính lương
     def calculate_salary(self):
         try:
-            success = DB.calculate_and_update_payroll(self.conn, self.cursor)
-            self.root.after(0, lambda: self.on_calculate_complete(success))
+            success = src.salary.salary.calculate_and_update_payroll() 
+            self.root.after(0, lambda: self.on_calculate_complete(success))  
         except Exception as e:
-            self.root.config(cursor="")  # Reset cursor ngay lập tức
-            messagebox.showerror("Lỗi", f"Lỗi khi tính lương: {str(e)}")
-            if self.conn and self.conn.is_connected():
-                self.conn.rollback()
+            self.root.after(0, lambda: messagebox.showerror("Lỗi", f"Lỗi khi tính lương: {str(e)}"))
 
+    # 
     def on_calculate_complete(self, success):
         self.root.config(cursor="")
         if success:
             messagebox.showinfo("Thành công", "Đã tính toán và cập nhật lương thành công!")
             if self.conn and self.conn.is_connected():
-                self.conn.commit()
+                DB.close_connection(self.conn, self.cursor)
+            self.conn, self.cursor = DB.connect_to_database()
             self.load_salary_data()
-            self.salary_tree.update_idletasks()
+            self.salary_tree.update()
         else:
             messagebox.showerror("Lỗi", "Tính lương thất bại! Vui lòng kiểm tra dữ liệu hoặc kết nối.")
-            if self.conn and self.conn.is_connected():
-                self.conn.rollback()
-
-
-    # Sửa thông tin lương của nhân viên được chọn: 
-    def edit_salary_popup(self):
-        selected_item = self.salary_tree.selection()
-        if not selected_item:
-            messagebox.showwarning("Chú ý", "Vui lòng chọn một dòng để sửa.")
-            return
-        item = self.salary_tree.item(selected_item)
-        values = item['values']
-        emp_id = values[1]
-        emp_name = values[2]
-        month_year_str = values[3] 
-        print(month_year_str)
-        month, year, day = map(int, month_year_str.split("-"))
-        base_salary = values[4].replace(",", "")
-        time_salary = values[5].replace(",", "")
-        overtime_salary = values[6].replace(",", "")
-        # Tạo popup căn giữa màn hình
-        popup = tk.Toplevel()
-        popup.title("Sửa Lương Nhân Viên")
-        popup.resizable(False, False)
-        popup_width = 400
-        popup_height = 350
-        screen_width = popup.winfo_screenwidth()
-        screen_height = popup.winfo_screenheight()
-
-        x_pos = int((screen_width - popup_width) / 2)
-        y_pos = int((screen_height - popup_height) / 2)
-        popup.geometry(f"{popup_width}x{popup_height}+{x_pos}+{y_pos}")
-
-        label_font = ("Times New Roman", 12)
-        entry_font = ("Times New Roman", 12)
-        frame = tk.Frame(popup, padx=20, pady=20)
-        frame.pack()
-
-        def create_row(row, label_text, initial_value, state='normal'):
-            label = tk.Label(frame, text=label_text, font=label_font, anchor='e', width=15)
-            label.grid(row=row, column=0, padx=(20, 10), pady=8)
-            entry = tk.Entry(frame, font=entry_font, width=25)
-            entry.grid(row=row, column=1, padx=(10, 20), pady=8)
-            entry.insert(0, initial_value)
-            if state == 'readonly':
-                entry.config(state='readonly')
-            else:
-                entry.config(state=state)
-            return entry
-        entry_emp_id = create_row(0, "Mã nhân viên:", emp_id, 'readonly')
-        entry_emp_name = create_row(1, "Tên nhân viên:", emp_name, 'readonly')
-        entry_month_year = create_row(2, "Tháng/Năm:", month_year_str, 'readonly')
-        entry_base = create_row(3, "Lương cơ bản:", base_salary)
-        entry_time = create_row(4, "Lương theo giờ:", time_salary)
-        entry_ot = create_row(5, "Lương tăng ca:", overtime_salary)
-
-        def update_salary():
-            try:
-                new_base = float(entry_base.get())
-                new_time = float(entry_time.get())
-                new_ot = float(entry_ot.get())
-                query = """
-                    UPDATE Payroll 
-                    SET base_salary = %s, time_salary = %s, overtime_salary = %s 
-                    WHERE emp_id = %s AND MONTH(month_year) = %s AND YEAR(month_year) = %s
-                """
-                self.cursor.execute(query, (new_base, new_time, new_ot, emp_id, month, year))
-                self.conn.commit()
-                messagebox.showinfo("Thành công", "Cập nhật lương thành công!")
-                popup.destroy()
-                self.load_salary_data(
-                    month=self.month_var.get(), 
-                    year=self.year_var.get(), 
-                    search_term=self.search_var.get().strip().lower()
-                )
-            except Exception as e:
-                messagebox.showerror("Lỗi", f"Lỗi khi cập nhật lương: {e}")
-
-        update_btn = tk.Button(
-            frame, text="Cập Nhật", font=("Times New Roman", 12, "bold"),
-            bg="#4caf50", fg="white", padx=10, pady=5, command=update_salary
-        )
-        update_btn.grid(row=6, column=0, columnspan=2, pady=15)
-
 
     def show_statistics(self):
         print("Bắt đầu show_statistics")
