@@ -106,7 +106,7 @@ class DatabaseHandler:
             date = datetime.now().date()
         """Lấy bản ghi chấm công gần nhất của nhân viên tron ngày"""
         query = """
-            SELECT check_in, check_out, date
+            SELECT attendance_id, check_in, check_out, date
             FROM Attendance 
             WHERE emp_id = %s AND date = %s
         """
