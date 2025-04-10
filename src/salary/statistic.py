@@ -17,11 +17,11 @@ class StatisticApp:
         self.conn = db_connection
         self.cursor = db_cursor
 
-        # Khởi tạo các biến với giá trị mặc định là "Tất cả"
+        # Khởi tạo các biến với giá trị mặc định
         self.month_var = tk.StringVar(value="Tất cả")
         self.year_var = tk.StringVar(value="Tất cả")
         self.overtime_threshold_var = tk.StringVar(value="24")
-        self.top_n_var = tk.StringVar(value="3")
+        self.top_n_var = tk.StringVar(value="")  # Để trống để người dùng nhập tự do
 
         self.bg_color = "#f7f8fa"
         self.card_bg = "#ffffff"
@@ -204,6 +204,11 @@ class StatisticApp:
         top_salary_frame = tk.Frame(stats_frame, bg=self.bg_color)
         top_salary_frame.pack(fill=tk.BOTH, expand=True, pady=10)
 
+        # Thêm tiêu đề cho bảng Top nhân viên có lương cao nhất
+        top_salary_label = tk.Label(top_salary_frame, text="Top nhân viên có lương cao nhất", 
+                                    font=("Times New Roman", 14, "bold"), bg=self.bg_color, fg="#0276f7")
+        top_salary_label.pack(anchor="w", pady=(0, 5))
+
         top_scroll_y = ttk.Scrollbar(top_salary_frame, orient="vertical")
         self.top_salary_tree = ttk.Treeview(top_salary_frame, columns=("STT", "Mã NV", "Tên", "Lương"), 
                                             show="headings", height=3, yscrollcommand=top_scroll_y.set)
@@ -340,11 +345,15 @@ class StatisticApp:
         except ValueError:
             overtime_threshold = 24.0
             self.overtime_threshold_var.set("24")
+
+        # Xử lý giá trị top_n từ người dùng nhập
         try:
-            top_n = int(self.top_n_var.get())
+            top_n = int(self.top_n_var.get()) if self.top_n_var.get().strip() else 5  # Mặc định là 5 nếu không nhập
+            if top_n <= 0:
+                top_n = 5  # Đảm bảo top_n là số dương
         except ValueError:
-            top_n = 3
-            self.top_n_var.set("3")
+            top_n = 5  # Mặc định là 5 nếu nhập sai
+            self.top_n_var.set("5")
 
         # Tính ngày bắt đầu và kết thúc cho tháng trước (nếu có)
         if start_date and end_date:
@@ -539,25 +548,32 @@ class StatisticApp:
 
         if start_date and end_date:
             self.cursor.execute("""
-                SELECT e.emp_id, e.first_name, e.last_name, (p.base_salary + p.overtime_salary) AS total_salary
+                SELECT e.emp_id, e.first_name, e.last_name, SUM(p.base_salary + p.overtime_salary) AS total_salary
                 FROM Employees e
                 JOIN Payroll p ON e.emp_id = p.emp_id
                 WHERE p.month_year = %s
-                ORDER BY (p.base_salary + p.overtime_salary) DESC
+                GROUP BY e.emp_id, e.first_name, e.last_name
+                ORDER BY total_salary DESC
                 LIMIT %s
             """, (start_date.strftime('%Y-%m-01'), top_n))
         else:
             self.cursor.execute("""
-                SELECT e.emp_id, e.first_name, e.last_name, (p.base_salary + p.overtime_salary) AS total_salary
+                SELECT e.emp_id, e.first_name, e.last_name, SUM(p.base_salary + p.overtime_salary) AS total_salary
                 FROM Employees e
                 JOIN Payroll p ON e.emp_id = p.emp_id
-                ORDER BY (p.base_salary + p.overtime_salary) DESC
+                GROUP BY e.emp_id, e.first_name, e.last_name
+                ORDER BY total_salary DESC
                 LIMIT %s
             """, (top_n,))
+
         top_salaries = self.cursor.fetchall()
-        for idx, row in enumerate(top_salaries, 1):
-            full_name = f"{row['last_name']} {row['first_name']}"
-            self.top_salary_tree.insert("", "end", values=(idx, row['emp_id'], full_name, f"{row['total_salary']:,.0f} VNĐ"))
+
+        if top_salaries:
+            for idx, row in enumerate(top_salaries, 1):
+                full_name = f"{row['last_name']} {row['first_name']}"
+                self.top_salary_tree.insert("", "end", values=(idx, row['emp_id'], full_name, f"{row['total_salary']:,.0f} VNĐ"))
+        else:
+            self.top_salary_tree.insert("", "end", values=("", "", "Không có dữ liệu", ""))
 
         # Cập nhật biểu đồ
         if year_str == "Tất cả":
