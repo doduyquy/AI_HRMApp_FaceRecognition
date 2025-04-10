@@ -173,7 +173,33 @@ class StatisticApp:
         self.canvas_widget = FigureCanvasTkAgg(self.fig, master=chart_frame)
         self.canvas_widget.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        # Frame chứa bảng chấm công
+        # Frame chứa bảng lương cao nhất (Đặt trước bảng chấm công)
+        top_salary_frame = tk.Frame(stats_frame, bg=self.bg_color)
+        top_salary_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+
+        # Thêm tiêu đề cho bảng Top nhân viên có lương cao nhất
+        top_salary_label = tk.Label(top_salary_frame, text="Top nhân viên có lương cao nhất", 
+                                    font=("Times New Roman", 14, "bold"), bg=self.bg_color, fg="#0276f7")
+        top_salary_label.pack(anchor="w", pady=(0, 5))
+
+        top_scroll_y = ttk.Scrollbar(top_salary_frame, orient="vertical")
+        self.top_salary_tree = ttk.Treeview(top_salary_frame, columns=("STT", "Mã NV", "Tên", "Lương"), 
+                                            show="headings", height=3, yscrollcommand=top_scroll_y.set)
+        top_scroll_y.config(command=self.top_salary_tree.yview)
+        top_scroll_y.pack(side=tk.RIGHT, fill=tk.Y)
+        self.top_salary_tree.pack(fill=tk.BOTH, expand=True)
+
+        # Cấu hình cột cho bảng lương cao nhất
+        self.top_salary_tree.heading("STT", text="STT")
+        self.top_salary_tree.heading("Mã NV", text="Mã Nhân Viên")
+        self.top_salary_tree.heading("Tên", text="Tên Nhân Viên")
+        self.top_salary_tree.heading("Lương", text="Tổng Lương")
+        self.top_salary_tree.column("STT", width=50, anchor="center")
+        self.top_salary_tree.column("Mã NV", width=100, anchor="center")
+        self.top_salary_tree.column("Tên", width=200, anchor="w")
+        self.top_salary_tree.column("Lương", width=150, anchor="center")
+
+        # Frame chứa bảng chấm công (Đặt sau bảng lương cao nhất)
         attendance_frame = tk.Frame(stats_frame, bg=self.bg_color)
         attendance_frame.pack(fill=tk.BOTH, expand=True, pady=10)
 
@@ -199,32 +225,6 @@ class StatisticApp:
         self.attendance_tree.column("Vắng", width=100, anchor="center")
 
         self.attendance_tree.bind("<Double-1>", self.show_attendance_details)
-
-        # Frame chứa bảng lương cao nhất
-        top_salary_frame = tk.Frame(stats_frame, bg=self.bg_color)
-        top_salary_frame.pack(fill=tk.BOTH, expand=True, pady=10)
-
-        # Thêm tiêu đề cho bảng Top nhân viên có lương cao nhất
-        top_salary_label = tk.Label(top_salary_frame, text="Top nhân viên có lương cao nhất", 
-                                    font=("Times New Roman", 14, "bold"), bg=self.bg_color, fg="#0276f7")
-        top_salary_label.pack(anchor="w", pady=(0, 5))
-
-        top_scroll_y = ttk.Scrollbar(top_salary_frame, orient="vertical")
-        self.top_salary_tree = ttk.Treeview(top_salary_frame, columns=("STT", "Mã NV", "Tên", "Lương"), 
-                                            show="headings", height=3, yscrollcommand=top_scroll_y.set)
-        top_scroll_y.config(command=self.top_salary_tree.yview)
-        top_scroll_y.pack(side=tk.RIGHT, fill=tk.Y)
-        self.top_salary_tree.pack(fill=tk.BOTH, expand=True)
-
-        # Cấu hình cột cho bảng lương cao nhất
-        self.top_salary_tree.heading("STT", text="STT")
-        self.top_salary_tree.heading("Mã NV", text="Mã Nhân Viên")
-        self.top_salary_tree.heading("Tên", text="Tên Nhân Viên")
-        self.top_salary_tree.heading("Lương", text="Tổng Lương")
-        self.top_salary_tree.column("STT", width=50, anchor="center")
-        self.top_salary_tree.column("Mã NV", width=100, anchor="center")
-        self.top_salary_tree.column("Tên", width=200, anchor="w")
-        self.top_salary_tree.column("Lương", width=150, anchor="center")
 
         # Cấu hình style cho Treeview
         style = ttk.Style()
