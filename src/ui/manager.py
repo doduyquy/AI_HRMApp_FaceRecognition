@@ -163,6 +163,7 @@ class ManagerApp:
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
         default_img_path = os.path.join(BASE_DIR, "..", "img", "user.jpg")
         try:
+            print(f"Attempting to load image from: {img_path}")
             if img_path and os.path.exists(img_path):
                 size = (120, 140)
                 img = Image.open(img_path).resize(size) 
@@ -579,7 +580,7 @@ class ManagerApp:
                             ('Treeheading.text', {'sticky': 'we'})]})]})])
 
         style.configure("Treeview.Heading",
-                        font=("Times New Roman", 10, "bold"),
+                        font=("Times New Roman", 11, "bold"),
                         background="#9fd7f9",
                         foreground="#000",
                         relief="flat",
@@ -1518,7 +1519,7 @@ class ManagerApp:
 
         # Cấu hình style cho Treeview
         style = ttk.Style()
-        style.configure("Treeview.Heading", font=("Times New Roman", 10, "bold"))
+        style.configure("Treeview.Heading", font=("Times New Roman", 11, "bold"))
 
         # Load các icon
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -1544,7 +1545,7 @@ class ManagerApp:
 
         # Bộ lọc Năm
         self.year_var = tk.StringVar(value="Tất cả")
-        year_label = tk.Label(filter_frame, text="Năm:", bg=self.bg_color, font=("Times New Roman", 9))
+        year_label = tk.Label(filter_frame, text="Năm:", bg=self.bg_color, font=("Times New Roman", 11))
         year_label.pack(side=tk.LEFT)
         years = ["Tất cả"] + sorted(set(
             emp['hired_date'].strftime("%Y") 
@@ -1554,7 +1555,7 @@ class ManagerApp:
         year_combo = ttk.Combobox(filter_frame, 
                                 textvariable=self.year_var, 
                                 width=10,  
-                                font=("Times New Roman", 9),
+                                font=("Times New Roman", 11),
                                 style="Custom.TCombobox")
         year_combo['values'] = years
         year_combo.pack(side=tk.LEFT, padx=2)
@@ -1562,12 +1563,12 @@ class ManagerApp:
 
         # Bộ lọc Tháng
         self.month_var = tk.StringVar(value="Tất cả")
-        month_label = tk.Label(filter_frame, text="Tháng:", bg=self.bg_color, font=("Times New Roman", 9))
+        month_label = tk.Label(filter_frame, text="Tháng:", bg=self.bg_color, font=("Times New Roman", 11))
         month_label.pack(side=tk.LEFT)
         month_combo = ttk.Combobox(filter_frame, 
                                 textvariable=self.month_var, 
                                 width=10, 
-                                font=("Times New Roman", 9),
+                                font=("Times New Roman", 11),
                                 style="Custom.TCombobox")
         month_combo['values'] = ("Tất cả", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12")
         month_combo.pack(side=tk.LEFT, padx=2)
@@ -1575,12 +1576,12 @@ class ManagerApp:
 
         # Bộ lọc Ngày
         self.day_var = tk.StringVar(value="Tất cả")
-        day_label = tk.Label(filter_frame, text="Ngày:", bg=self.bg_color, font=("Times New Roman", 9))
+        day_label = tk.Label(filter_frame, text="Ngày:", bg=self.bg_color, font=("Times New Roman", 11))
         day_label.pack(side=tk.LEFT)
         day_combo = ttk.Combobox(filter_frame,
                                 textvariable=self.day_var,
                                 width=10,
-                                font=("Times New Roman", 9),
+                                font=("Times New Roman", 11),
                                 style="Custom.TCombobox")
         day_combo['values'] = ["Tất cả"] + [str(i) for i in range(1, 32)]
         day_combo.pack(side=tk.LEFT, padx=2)
@@ -2041,7 +2042,7 @@ class ManagerApp:
         style = ttk.Style()
         style.theme_use("clam")
         style.configure("Treeview.Heading",
-                        font=("Times New Roman", 10, "bold"),
+                        font=("Times New Roman", 11, "bold"),
                         background="#9fd7f9",
                         foreground="#000",
                         relief="flat",

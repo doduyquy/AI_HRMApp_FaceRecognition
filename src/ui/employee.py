@@ -406,7 +406,7 @@ class HRMApp:
                             ('Treeheading.text', {'sticky': 'we'})]})]})])
 
         style.configure("Custom.Treeview.Heading",
-                        font=("Times New Roman", 10, "bold"),
+                        font=("Times New Roman", 11, "bold"),
                         background="#9fd7f9",
                         foreground="#000",
                         relief="flat",
@@ -479,7 +479,7 @@ class HRMApp:
         year = selected_year if selected_year != "Tất cả" else None
         self.load_attendance_data(month, year)
 
-    # Hiển thị thông tin lương
+    # # Hiển thị thông tin lương
     def show_salary(self):
         salary_frame = tk.Frame(self.content_area, bg="#fff")
         salary_frame.pack(fill=tk.BOTH, expand=True)
@@ -491,16 +491,11 @@ class HRMApp:
                         bg="#fff")
         title_l.pack(anchor="center", pady=(10, 20))
 
-        # title_l = tk.Label(salary_frame, text="Thông tin lương", 
-        #                    font=("Times New Roman", 18, "bold"), fg="#333333", bg="#f5f7fa")
-        # title_l.pack(anchor="w", pady=(0, 20))
-
         filter_frame = tk.Frame(salary_frame, bg="#fff")
         filter_frame.pack(fill=tk.X, pady=(0, 10))
 
         inner_f = tk.Frame(filter_frame, bg="#fff")
         inner_f.pack(anchor="center")
-
 
         year_label = tk.Label(inner_f, text="Năm:", font=("Times New Roman", 11), bg="#fff")
         year_label.pack(side=tk.LEFT, padx=(10, 5))
@@ -569,8 +564,9 @@ class HRMApp:
             salary_button.image = self.salary_icon
         salary_button.pack(side=tk.LEFT, padx=10)
 
-        columns = ("Tháng/Năm", "Lương cơ bản", "Lương theo giờ", "Tiền tăng ca", "Tổng lương")
-        self.salary_tree = ttk.Treeview(salary_frame, columns=columns, show="headings", height=15)
+        # Tạo table_frame để chứa Treeview và thanh cuộn
+        table_frame = tk.Frame(salary_frame, bg="#ffffff")
+        table_frame.pack(fill=tk.BOTH, expand=True)
 
         style = ttk.Style()
         style.theme_use("default")
@@ -583,7 +579,7 @@ class HRMApp:
                             ('Treeheading.text', {'sticky': 'we'})]})]})])
 
         style.configure("Custom.Treeview.Heading",
-                        font=("Times New Roman", 10, "bold"),
+                        font=("Times New Roman", 11, "bold"),  # Cập nhật font từ 10 lên 11
                         background="#9fd7f9",
                         foreground="#000",
                         relief="flat",
@@ -596,8 +592,21 @@ class HRMApp:
                         font=("Times New Roman", 10))
 
         style.map("Treeview",
-                    background=[("selected", "#c6e3f5")],
-                    foreground=[("selected", "black")])
+                background=[("selected", "#c6e3f5")],
+                foreground=[("selected", "black")])
+
+        # Thêm thanh cuộn dọc
+        scroll_y = tk.Scrollbar(table_frame, orient="vertical")
+        scroll_y.pack(side=tk.RIGHT, fill=tk.Y)
+
+        columns = ("Tháng/Năm", "Lương cơ bản", "Lương theo giờ", "Tiền tăng ca", "Tổng lương")
+        self.salary_tree = ttk.Treeview(table_frame,
+                                        columns=columns,
+                                        show="headings",
+                                        yscrollcommand=scroll_y.set,  # Liên kết thanh cuộn
+                                        height=15,
+                                        style="Custom.Treeview")
+        scroll_y.config(command=self.salary_tree.yview)
 
         for col in columns:
             self.salary_tree.heading(col, text=col)
@@ -605,6 +614,7 @@ class HRMApp:
 
         self.salary_tree.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
         self.load_salary_data()
+
 
     #  Load dữ liệu lương
     def load_salary_data(self, month=None, year=None):

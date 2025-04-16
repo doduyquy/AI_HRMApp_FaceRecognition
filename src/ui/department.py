@@ -186,7 +186,7 @@ class DepartmentApp:
         # Treeview configuration
         style = ttk.Style()
         style.theme_use("clam")
-        style.configure("Treeview.Heading", font=("Times New Roman", 10, "bold"), background="#9fd7f9", foreground="#000", relief="flat", borderwidth=0, padding=5)
+        style.configure("Treeview.Heading", font=("Times New Roman", 11, "bold"), background="#9fd7f9", foreground="#000", relief="flat", borderwidth=0, padding=5)
         style.configure("Treeview", background="white", foreground="black", rowheight=25, fieldbackground="white")
         style.map("Treeview", background=[("selected", "#e5e5e5")], foreground=[("selected", "black")])
 

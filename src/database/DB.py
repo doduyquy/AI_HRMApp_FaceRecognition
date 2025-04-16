@@ -105,7 +105,7 @@ def get_attendance_by_emp(cursor, emp_id, month=None, year=None):
 
         query += " ORDER BY date DESC"
 
-        print(f"In employee, get_attendance_by_emp, query: {query}")
+        # print(f"In employee, get_attendance_by_emp, query: {query}")
 
         cursor.execute(query, tuple(params))
         return cursor.fetchall()

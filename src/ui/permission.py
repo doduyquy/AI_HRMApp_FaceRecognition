@@ -110,14 +110,6 @@ class PermissionApp:
         delete_button.image = delete_icon
         delete_button.pack(side=tk.LEFT, padx=3)
 
-        reset_button = tk.Button(buttons_inner_frame,
-            text="Làm mới", image=reset_icon, compound=tk.TOP,
-            command=self.reset_permission_list, 
-            bg="#f7f8fa", bd=0, width=60, height=60,
-            font=("Times New Roman", 9), relief="flat",
-            activebackground="#7d8e96")
-        reset_button.image = reset_icon 
-        reset_button.pack(side=tk.LEFT, padx=3)
 
         excel_button = tk.Button(buttons_inner_frame, 
             text="Excel", image=excel_icon, compound=tk.TOP,
@@ -127,6 +119,15 @@ class PermissionApp:
             activebackground="#65f06b")
         excel_button.image = excel_icon
         excel_button.pack(side=tk.LEFT, padx=3)
+
+        reset_button = tk.Button(buttons_inner_frame,
+            text="Làm mới", image=reset_icon, compound=tk.TOP,
+            command=self.reset_permission_list, 
+            bg="#f7f8fa", bd=0, width=60, height=60,
+            font=("Times New Roman", 9), relief="flat",
+            activebackground="#7d8e96")
+        reset_button.image = reset_icon 
+        reset_button.pack(side=tk.LEFT, padx=3)
 
         search_frame = tk.Frame(buttons_inner_frame, bg="white", relief="flat", highlightthickness=1, highlightbackground="#4c84f5")
         search_frame.pack(side=tk.LEFT, padx=10, ipady=4)
@@ -163,7 +164,7 @@ class PermissionApp:
 
         style = ttk.Style()
         style.theme_use("clam")
-        style.configure("Treeview.Heading", font=("Times New Roman", 10, "bold"), background="#9fd7f9", foreground="#000", relief="flat", borderwidth=0, padding=5)
+        style.configure("Treeview.Heading", font=("Times New Roman", 11, "bold"), background="#9fd7f9", foreground="#000", relief="flat", borderwidth=0, padding=5)
         style.configure("Treeview", background="white", foreground="black", rowheight=25, fieldbackground="white")
         style.map("Treeview", background=[("selected", "#e5e5e5")], foreground=[("selected", "black")])
 
