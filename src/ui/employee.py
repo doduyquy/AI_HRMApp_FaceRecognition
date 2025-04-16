@@ -160,7 +160,8 @@ class HRMApp:
     def get_employee_image(self, folder):
         if os.path.exists(folder):
             for file_name in os.listdir(folder):
-                if file_name.startswith(self.emp_id + "_"):
+                # if file_name.startswith(self.emp_id + "_"):
+                if file_name.startswith(self.emp_id) and file_name.endswith("Avatar.jpg"):
                     return os.path.join(folder, file_name)
         return None
 

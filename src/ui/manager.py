@@ -25,14 +25,14 @@ class ManagerApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Quản Lý Nhân Sự")
-        # self.root.state('zoomed')
         self.root.geometry("1300x650")
         self.root.resizable(True, True)
 
-        self.bg_color = "#f7f8fa"
-        self.menu_color = "#fff"
-        self.selected_menu_color = "#3eaef4"
-        self.header_color = "#fff"
+        # Cập nhật màu sắc
+        self.bg_color = "#fff"  # Nội dung chính
+        self.menu_color = "#e9f4f5"  # Sidebar
+        self.selected_menu_color = "#a6dcef"  # Hover menu
+
         self.root.configure(bg=self.bg_color)
 
         self.day_var = tk.StringVar()
@@ -41,50 +41,86 @@ class ManagerApp:
         self.year_var = tk.StringVar()
         self.month_var = tk.StringVar()
 
-        self.content_frame = tk.Frame(self.root, bg=self.bg_color)
-        self.content_frame.place(relwidth=1, relheight=1) 
-
         self.entries = {}
         self.selected_button = None
         self.current_content = None
         self.search_entry = None
         self.current_menu = "Nhân Sự"
 
+        # Tạo khung nội dung chính
+        self.content_frame = tk.Frame(self.root, bg=self.bg_color)
+        self.content_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+        
         self.stat_app = None
         self.conn, self.cursor = DB.connect_to_database()
         self.show_employee_list()
 
-        # Header
-        self.header_frame = tk.Frame(self.root, bg=self.header_color, height=55)
-        self.header_frame.pack(side=tk.TOP, fill=tk.X)
-        self.header_frame.pack_propagate(0)
+        self.menu_icons = {}
+        self.menu_buttons = {}
 
+        # Tạo sidebar
+        self.sidebar = tk.Frame(self.root, width=150, bg=self.menu_color)
+        self.sidebar.pack(side=tk.LEFT, fill=tk.Y)
+        self.sidebar.pack_propagate(False)
+
+
+        # Tạo nội dung sidebar
+        self.create_sidebar_content()
+
+        # Tạo khu vực nội dung
+        self.content_area = tk.Frame(self.content_frame, bg=self.bg_color)
+        self.content_area.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+
+        self.on_menu_click("Nhân Sự")
+    def create_sidebar_content(self):
         # Logo
-        logo_label = tk.Label(self.header_frame, text="PYTECH", font=("Times New Roman", 20, "bold"), fg="#357ae8", bg=self.header_color)
-        logo_label.pack(side=tk.LEFT, padx=10)
+        logo_f = tk.Frame(self.sidebar, bg=self.menu_color, height=60)
+        logo_f.pack(fill=tk.X)
+        logo_l = tk.Label(logo_f, 
+                        text="PYTECH", 
+                        font=("Times New Roman", 20, "bold"), 
+                        bg=self.menu_color, 
+                        fg="#0276f7")
+        logo_l.pack(pady=10)
 
-        # Avt
+        # Khung thông tin nhân viên
+        profile_f = tk.Frame(self.sidebar, bg=self.menu_color)
+        profile_f.pack(fill=tk.X)
+
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-        avt_path = os.path.join(BASE_DIR, "..", "img", "manager.png")
-        img = Image.open(avt_path).resize((30, 30))
-        mask = Image.new("L", img.size, 0)
-        draw = ImageDraw.Draw(mask)
-        draw.ellipse((0, 0, img.size[0], img.size[1]), fill=255)
-        img.putalpha(mask)
-        self.avt_img = ImageTk.PhotoImage(img)
+        data_f = os.path.join(BASE_DIR, "..", "..", "Data")
+        img_path = self.get_employee_image(data_f)
 
-        label = tk.Label(self.header_frame, image=self.avt_img, bg=self.header_color)
-        label.pack(side=tk.RIGHT, padx=5)
+        avatar_l = self.create_avatar(profile_f, img_path)
+        avatar_l.pack(pady=10)
 
-        # Manager
-        user_label = tk.Label(self.header_frame, text="Manager", font=('Times New Roman', 13), fg="black", bg=self.header_color)
-        user_label.pack(side=tk.RIGHT, padx=10)
+        # Tên và chức vụ
+        full_name = "Manager"
+        position = "Manager"
+            # full_name = f"{self.employee['last_name']} {self.employee['first_name']}"
+            # position = self.employee['position']
+        name_l = tk.Label(profile_f, 
+                        text=full_name, 
+                        font=("Times New Roman", 14, "bold"), 
+                        fg="#000", 
+                        bg=self.menu_color)
+        name_l.pack()
+        
+        position_l = tk.Label(profile_f, 
+                            text=position, 
+                            font=("Times New Roman", 12), 
+                            fg="#4a4949", 
+                            bg=self.menu_color)
+        position_l.pack()
+
+        # Thanh phân tách
+        separator = tk.Frame(self.sidebar, height=1, bg="#2d82b5")
+        separator.pack(fill=tk.X, padx=20, pady=3)
 
         # Menu
-        self.menu_frame = tk.Frame(self.root, bg=self.menu_color, width=200)
-        self.menu_frame.pack(side=tk.LEFT, fill=tk.Y)
+        menu_f = tk.Frame(self.sidebar, bg=self.menu_color)
+        menu_f.pack(fill=tk.BOTH, expand=True, pady=10)
 
-        # Danh sách menu và icon
         menu_items = [
             ("Nhân Sự", "people.png"),
             ("Chấm công", "check.png"),
@@ -92,41 +128,169 @@ class ManagerApp:
             ("Thống Kê", "stats.png"),
             ("Đăng xuất", "logout.png")
         ]
-        self.menu_buttons = {}
-        self.menu_icons = {}
-        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
         for item, icon_name in menu_items:
-            # Tải icon
-            icon_path = os.path.join(BASE_DIR, "..", "img", icon_name)
-            if os.path.exists(icon_path):
-                icon_img = Image.open(icon_path).resize((15, 15)) 
-                icon = ImageTk.PhotoImage(icon_img)
-            else:
-                icon = ImageTk.PhotoImage(Image.new("RGBA", (20, 20), (0, 0, 0, 0)))
-                print(f"Không tìm thấy icon: {icon_name}")
+            btn_frame = tk.Frame(menu_f, bg=self.menu_color, width=250, height=50)
+            btn_frame.pack(fill=tk.X, pady=5)
+            btn_frame.pack_propagate(False)
 
-            self.menu_icons[item] = icon 
-            btn = tk.Button(self.menu_frame, 
+            icon = self.load_icon(BASE_DIR, icon_name)
+            btn = tk.Button(btn_frame, 
                             text=item, 
-                            font=("Times New Roman", 11), 
-                            bg=self.menu_color, 
-                            fg="#000",
-                            bd=0, 
-                            command=lambda x=item: self.on_menu_click(x),
-                            image=self.menu_icons[item], 
-                            compound=tk.LEFT,
-                            anchor="w",
-                            padx=10,
+                            font=("Times New Roman", 12), 
+                            fg="#000", 
+                            bg=self.menu_color,
+                            activebackground=self.selected_menu_color, 
+                            activeforeground="#000", 
                             pady=10,
-                            width=100) 
-            btn.pack(fill=tk.X, pady=0, padx=0)
+                            bd=0, 
+                            anchor="w",
+                            command=lambda menu_item=item: self.on_menu_click(menu_item))
+            if icon:
+                btn.config(image=icon, compound = tk.LEFT, padx=15)
+                self.menu_icons[item] = icon
+            else:
+                btn.config(padx=15)
+            btn.pack(fill=tk.X)
             self.menu_buttons[item] = btn
+    def get_employee_image(self, folder):
+        if os.path.exists(folder):
+            for file_name in os.listdir(folder):
+                if file_name == "Manager_Avatar.png":
+                    return os.path.join(folder, file_name)
+        return None
+    def create_avatar(self, frame, img_path):
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        default_img_path = os.path.join(BASE_DIR, "..", "img", "user.jpg")
+        try:
+            if img_path and os.path.exists(img_path):
+                size = (120, 140)
+                img = Image.open(img_path).resize(size) 
+                avatar = ImageTk.PhotoImage(img)
+                label = tk.Label(frame, image=avatar, bg=self.menu_color)
+                label.image = avatar
+                return label
+            else:
+                raise FileNotFoundError("")
+        except Exception as e:
+            size = (120, 140)
+            img = Image.open(default_img_path).resize(size)
+            avatar = ImageTk.PhotoImage(img)
+            label = tk.Label(frame, image=avatar, bg=self.menu_color)
+            label.image = avatar
+            return label
+    def load_icon(self, base_dir, icon_name):
+        icon_path = os.path.join(base_dir, "..", "img", icon_name)
+        if os.path.exists(icon_path):
+            icon_img = Image.open(icon_path).resize((18, 18))
+            return ImageTk.PhotoImage(icon_img)
+        print(f"Không tìm thấy icon: {icon_name}")
+        return None
+    # def __init__(self, root):
+    #     self.root = root
+    #     self.root.title("Quản Lý Nhân Sự")
+    #     # self.root.state('zoomed')
+    #     self.root.geometry("1300x650")
+    #     self.root.resizable(True, True)
 
-        self.content_frame = tk.Frame(self.root, bg=self.bg_color)
-        self.content_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=10)
+    #     self.bg_color = "#f7f8fa"
+    #     self.menu_color = "#fff"
+    #     self.selected_menu_color = "#3eaef4"
+    #     self.header_color = "#fff"
+    #     self.root.configure(bg=self.bg_color)
 
-        self.on_menu_click("Nhân Sự")
+    #     self.day_var = tk.StringVar()
+    #     self.position_var = tk.StringVar()
+    #     self.dep_var = tk.StringVar()
+    #     self.year_var = tk.StringVar()
+    #     self.month_var = tk.StringVar()
+
+    #     self.content_frame = tk.Frame(self.root, bg=self.bg_color)
+    #     self.content_frame.place(relwidth=1, relheight=1) 
+
+    #     self.entries = {}
+    #     self.selected_button = None
+    #     self.current_content = None
+    #     self.search_entry = None
+    #     self.current_menu = "Nhân Sự"
+
+    #     self.stat_app = None
+    #     self.conn, self.cursor = DB.connect_to_database()
+    #     self.show_employee_list()
+
+    #     # Header
+    #     self.header_frame = tk.Frame(self.root, bg=self.header_color, height=55)
+    #     self.header_frame.pack(side=tk.TOP, fill=tk.X)
+    #     self.header_frame.pack_propagate(0)
+
+    #     # Logo
+    #     logo_label = tk.Label(self.header_frame, text="PYTECH", font=("Times New Roman", 20, "bold"), fg="#357ae8", bg=self.header_color)
+    #     logo_label.pack(side=tk.LEFT, padx=10)
+
+    #     # Avt
+    #     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    #     avt_path = os.path.join(BASE_DIR, "..", "img", "manager.png")
+    #     img = Image.open(avt_path).resize((30, 30))
+    #     mask = Image.new("L", img.size, 0)
+    #     draw = ImageDraw.Draw(mask)
+    #     draw.ellipse((0, 0, img.size[0], img.size[1]), fill=255)
+    #     img.putalpha(mask)
+    #     self.avt_img = ImageTk.PhotoImage(img)
+
+    #     label = tk.Label(self.header_frame, image=self.avt_img, bg=self.header_color)
+    #     label.pack(side=tk.RIGHT, padx=5)
+
+    #     # Manager
+    #     user_label = tk.Label(self.header_frame, text="Manager", font=('Times New Roman', 13), fg="black", bg=self.header_color)
+    #     user_label.pack(side=tk.RIGHT, padx=10)
+
+    #     # Menu
+    #     self.menu_frame = tk.Frame(self.root, bg=self.menu_color, width=200)
+    #     self.menu_frame.pack(side=tk.LEFT, fill=tk.Y)
+
+    #     # Danh sách menu và icon
+    #     menu_items = [
+    #         ("Nhân Sự", "people.png"),
+    #         ("Chấm công", "check.png"),
+    #         ("Lương", "salary.png"),
+    #         ("Thống Kê", "stats.png"),
+    #         ("Đăng xuất", "logout.png")
+    #     ]
+    #     self.menu_buttons = {}
+    #     self.menu_icons = {}
+    #     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+    #     for item, icon_name in menu_items:
+    #         # Tải icon
+    #         icon_path = os.path.join(BASE_DIR, "..", "img", icon_name)
+    #         if os.path.exists(icon_path):
+    #             icon_img = Image.open(icon_path).resize((15, 15)) 
+    #             icon = ImageTk.PhotoImage(icon_img)
+    #         else:
+    #             icon = ImageTk.PhotoImage(Image.new("RGBA", (20, 20), (0, 0, 0, 0)))
+    #             print(f"Không tìm thấy icon: {icon_name}")
+
+    #         self.menu_icons[item] = icon 
+    #         btn = tk.Button(self.menu_frame, 
+    #                         text=item, 
+    #                         font=("Times New Roman", 11), 
+    #                         bg=self.menu_color, 
+    #                         fg="#000",
+    #                         bd=0, 
+    #                         command=lambda x=item: self.on_menu_click(x),
+    #                         image=self.menu_icons[item], 
+    #                         compound=tk.LEFT,
+    #                         anchor="w",
+    #                         padx=10,
+    #                         pady=10,
+    #                         width=100) 
+    #         btn.pack(fill=tk.X, pady=0, padx=0)
+    #         self.menu_buttons[item] = btn
+
+    #     self.content_frame = tk.Frame(self.root, bg=self.bg_color)
+    #     self.content_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+    #     self.on_menu_click("Nhân Sự")
 
     # Xử lý sự kiện nhấn menu
     def on_menu_click(self, option):
