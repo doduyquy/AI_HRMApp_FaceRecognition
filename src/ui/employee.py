@@ -24,8 +24,8 @@ class HRMApp:
     def __init__(self, root, emp_id):
         self.root = root
         self.root.title("Nhân Viên")
-        # self.root.geometry("1200x550+50+50")
-        self.root.state('zoomed')
+        self.root.geometry("1200x550+50+50")
+        # self.root.state('zoomed')
         
         self.emp_id = str(emp_id)
         self.select_btn = None
@@ -348,12 +348,6 @@ class HRMApp:
         inner_f = tk.Frame(btn_f, bg="#fff")
         inner_f.pack(anchor="center")
 
-        month_label = tk.Label(inner_f, text="Tháng:", font=("Times New Roman", 11), bg="#fff")
-        month_label.pack(side=tk.LEFT, padx=(0, 5))
-        self.month_filter_attendance = ttk.Combobox(inner_f, values=["Tất cả"] + [str(i) for i in range(1, 13)], state="readonly", width=10)
-        self.month_filter_attendance.set("Tất cả")
-        self.month_filter_attendance.pack(side=tk.LEFT, padx=5)
-        self.month_filter_attendance.bind("<<ComboboxSelected>>", self.filter_by_date)
 
         year_label = tk.Label(inner_f, text="Năm:", font=("Times New Roman", 11), bg="#fff")
         year_label.pack(side=tk.LEFT, padx=(10, 5))
@@ -361,6 +355,13 @@ class HRMApp:
         self.year_filter_attendance.set("Tất cả")
         self.year_filter_attendance.pack(side=tk.LEFT, padx=5)
         self.year_filter_attendance.bind("<<ComboboxSelected>>", self.filter_by_date)
+
+        month_label = tk.Label(inner_f, text="Tháng:", font=("Times New Roman", 11), bg="#fff")
+        month_label.pack(side=tk.LEFT, padx=(0, 5))
+        self.month_filter_attendance = ttk.Combobox(inner_f, values=["Tất cả"] + [str(i) for i in range(1, 13)], state="readonly", width=10)
+        self.month_filter_attendance.set("Tất cả")
+        self.month_filter_attendance.pack(side=tk.LEFT, padx=5)
+        self.month_filter_attendance.bind("<<ComboboxSelected>>", self.filter_by_date)
 
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
         img_dir = os.path.join(BASE_DIR, "..", "img")
@@ -479,32 +480,40 @@ class HRMApp:
 
     # Hiển thị thông tin lương
     def show_salary(self):
-        salary_frame = tk.Frame(self.content_area, bg="#f5f7fa")
+        salary_frame = tk.Frame(self.content_area, bg="#fff")
         salary_frame.pack(fill=tk.BOTH, expand=True)
 
-        title_l = tk.Label(salary_frame, text="Thông tin lương", 
-                           font=("Times New Roman", 18, "bold"), fg="#333333", bg="#f5f7fa")
-        title_l.pack(anchor="w", pady=(0, 20))
+        title_l = tk.Label(salary_frame, 
+                        text="Thông tin lương", 
+                        font=("Times New Roman", 18, "bold"), 
+                        fg="#333333", 
+                        bg="#fff")
+        title_l.pack(anchor="center", pady=(10, 20))
 
-        filter_frame = tk.Frame(salary_frame, bg="#f5f7fa")
+        # title_l = tk.Label(salary_frame, text="Thông tin lương", 
+        #                    font=("Times New Roman", 18, "bold"), fg="#333333", bg="#f5f7fa")
+        # title_l.pack(anchor="w", pady=(0, 20))
+
+        filter_frame = tk.Frame(salary_frame, bg="#fff")
         filter_frame.pack(fill=tk.X, pady=(0, 10))
 
-        inner_f = tk.Frame(filter_frame, bg="#f5f7fa")
+        inner_f = tk.Frame(filter_frame, bg="#fff")
         inner_f.pack(anchor="center")
 
-        month_label = tk.Label(inner_f, text="Tháng:", font=("Times New Roman", 11), bg="#f5f7fa")
-        month_label.pack(side=tk.LEFT, padx=(0, 5))
-        self.month_filter_salary = ttk.Combobox(inner_f, values=["Tất cả"] + [str(i) for i in range(1, 13)], state="readonly", width=10)
-        self.month_filter_salary.set("Tất cả")
-        self.month_filter_salary.pack(side=tk.LEFT, padx=5)
-        self.month_filter_salary.bind("<<ComboboxSelected>>", self.filter_salary)
 
-        year_label = tk.Label(inner_f, text="Năm:", font=("Times New Roman", 11), bg="#f5f7fa")
+        year_label = tk.Label(inner_f, text="Năm:", font=("Times New Roman", 11), bg="#fff")
         year_label.pack(side=tk.LEFT, padx=(10, 5))
         self.year_filter_salary = ttk.Combobox(inner_f, values=["Tất cả"] + [str(i) for i in range(2020, 2026)], state="readonly", width=10)
         self.year_filter_salary.set("Tất cả")
         self.year_filter_salary.pack(side=tk.LEFT, padx=5)
         self.year_filter_salary.bind("<<ComboboxSelected>>", self.filter_salary)
+
+        month_label = tk.Label(inner_f, text="Tháng:", font=("Times New Roman", 11), bg="#fff")
+        month_label.pack(side=tk.LEFT, padx=(0, 5))
+        self.month_filter_salary = ttk.Combobox(inner_f, values=["Tất cả"] + [str(i) for i in range(1, 13)], state="readonly", width=10)
+        self.month_filter_salary.set("Tất cả")
+        self.month_filter_salary.pack(side=tk.LEFT, padx=5)
+        self.month_filter_salary.bind("<<ComboboxSelected>>", self.filter_salary)
 
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
         img_dir = os.path.join(BASE_DIR, "..", "img")
@@ -529,7 +538,7 @@ class HRMApp:
             image=self.excel_icon,
             compound=tk.TOP,
             command=lambda: src.salary.excel_utils.export_to_excel(self.salary_tree, f"Payroll_{self.emp_id}"),
-            bg="#f5f7fa",
+            bg="#fff",
             bd=0,
             width=50,
             height=50,
@@ -547,7 +556,7 @@ class HRMApp:
             image=self.salary_icon,
             compound=tk.TOP,
             command=self.start_calculate_salary,
-            bg="#f5f7fa",
+            bg="#fff",
             bd=0,
             width=50,
             height=50,
@@ -684,4 +693,4 @@ def main(emp_id=""):
     root.mainloop()
 
 if __name__ == "__main__":
-    main(4)
+    main(4)     # Thanh An

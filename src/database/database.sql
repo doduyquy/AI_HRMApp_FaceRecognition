@@ -44,7 +44,8 @@ CREATE TABLE Attendance (
 CREATE TABLE Face_Data (
     face_id INT PRIMARY KEY AUTO_INCREMENT,
     emp_id INT,
-    face_encoding BLOB NOT NULL,
+    face_encoding BLOB,
+    image_path VARCHAR(255),
     angle ENUM('front', 'left', 'right', 'up', 'down'),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

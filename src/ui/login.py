@@ -3,7 +3,7 @@ from tkinter import messagebox, PhotoImage
 from PIL import Image, ImageTk
 import os
 import employee 
-import IT 
+import ui.IT as IT
 import manager
 from pathlib import Path
 import sys
@@ -81,7 +81,7 @@ def signin():
         show_welcome_screen("Manager", lambda: [manager_root := tk.Tk(), manager.ManagerApp(manager_root), manager_root.mainloop()])
         return
 
-    # Database
+    ### Kiểm tra tài khoản của nhân viên tên db
     try:
         conn, cursor = DB.connect_to_database()
         result = DB.check_employee_login(cursor, emp_id, password_input, default_password)
@@ -91,6 +91,7 @@ def signin():
     if result["success"]:
         full_name = result["full_name"]
         print(f"Đăng nhập thành công: {full_name} (ID: {emp_id})")
+        # Chuyển trang đến UI Employee
         show_welcome_screen(full_name, lambda: employee.main(emp_id))
     else:
         if result["error"] == "wrong_password":

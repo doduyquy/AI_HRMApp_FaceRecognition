@@ -25,8 +25,8 @@ class ManagerApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Quản Lý Nhân Sự")
-        self.root.state('zoomed')
-        # self.root.geometry("1300x650")
+        # self.root.state('zoomed')
+        self.root.geometry("1300x650")
         self.root.resizable(True, True)
 
         self.bg_color = "#f7f8fa"
@@ -1751,18 +1751,6 @@ class ManagerApp:
                     background=[("readonly", "white")],
                     foreground=[("readonly", "black")])
 
-        # Combobox tháng
-        month_label = tk.Label(filters_inner_frame, text="Tháng:", font=("Times New Roman", 11), bg=self.bg_color)
-        month_label.pack(side=tk.LEFT, padx=(0, 5))
-        self.month_var = tk.StringVar(value="Tất cả")
-        month_combobox = ttk.Combobox(filters_inner_frame,
-                                        textvariable=self.month_var,
-                                        values=["Tất cả"] + [str(i) for i in range(1, 13)],
-                                        state="readonly",
-                                        width=10,
-                                        style="Custom.TCombobox")
-        month_combobox.pack(side=tk.LEFT, padx=5)
-        month_combobox.bind("<<ComboboxSelected>>", self.filter_salary)
 
         # Combobox năm
         year_label = tk.Label(filters_inner_frame, text="Năm:", font=("Times New Roman", 11), bg=self.bg_color)
@@ -1777,6 +1765,19 @@ class ManagerApp:
                                     style="Custom.TCombobox")
         year_combobox.pack(side=tk.LEFT, padx=5)
         year_combobox.bind("<<ComboboxSelected>>", self.filter_salary)
+
+        # Combobox tháng
+        month_label = tk.Label(filters_inner_frame, text="Tháng:", font=("Times New Roman", 11), bg=self.bg_color)
+        month_label.pack(side=tk.LEFT, padx=(0, 5))
+        self.month_var = tk.StringVar(value="Tất cả")
+        month_combobox = ttk.Combobox(filters_inner_frame,
+                                        textvariable=self.month_var,
+                                        values=["Tất cả"] + [str(i) for i in range(1, 13)],
+                                        state="readonly",
+                                        width=10,
+                                        style="Custom.TCombobox")
+        month_combobox.pack(side=tk.LEFT, padx=5)
+        month_combobox.bind("<<ComboboxSelected>>", self.filter_salary)
 
         # Thanh tìm kiếm
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -1856,21 +1857,21 @@ class ManagerApp:
         reset_button.image = reset_icon 
         reset_button.pack(side=tk.LEFT, padx=3)
 
-        # Tính lương
-        salary_button = tk.Button(filters_inner_frame,
-                                    text="Lương",
-                                    image=salary_icon,
-                                    compound=tk.TOP,
-                                    command=self.start_calculate_salary,
-                                    bg="#f7f8fa",
-                                    bd=0,
-                                    width=60,
-                                    height=60,
-                                    font=("Times New Roman", 9),
-                                    relief="flat",
-                                    activebackground="#7d8e96")
-        salary_button.image = salary_icon
-        salary_button.pack(side=tk.LEFT, padx=3)
+        ### HIDE: Tính lương    
+        # salary_button = tk.Button(filters_inner_frame,
+        #                             text="Lương",
+        #                             image=salary_icon,
+        #                             compound=tk.TOP,
+        #                             command=self.start_calculate_salary,
+        #                             bg="#f7f8fa",
+        #                             bd=0,
+        #                             width=60,
+        #                             height=60,
+        #                             font=("Times New Roman", 9),
+        #                             relief="flat",
+        #                             activebackground="#7d8e96")
+        # salary_button.image = salary_icon
+        # salary_button.pack(side=tk.LEFT, padx=3)
                 
         # Cấu hình Treeview
         style = ttk.Style()
@@ -2059,13 +2060,20 @@ class ManagerApp:
                 new_base = float(entry_base.get())
                 new_time = float(entry_time.get())
                 new_ot = float(entry_ot.get())
+                # query = """
+                #     UPDATE Payroll 
+                #     SET base_salary = %s, time_salary = %s, overtime_salary = %s
+                #     WHERE emp_id = %s AND MONTH(month_year) = %s AND YEAR(month_year) = %s
+                # """
                 query = """
                     UPDATE Payroll 
                     SET base_salary = %s, time_salary = %s, overtime_salary = %s
-                    WHERE emp_id = %s AND MONTH(month_year) = %s AND YEAR(month_year) = %s
+                    WHERE emp_id = %s AND month_year = %s
                 """
-                self.cursor.execute(query, (new_base, new_time, new_ot, emp_id, month, year))
+                self.cursor.execute(query, (new_base, new_time, new_ot, emp_id, month_year_str))
+                # self.cursor.execute(query, (new_base, new_time, new_ot, emp_id, month, year))
                 self.conn.commit()
+                print(f"Update payroll: {new_base}, {new_time}, {new_ot}, {emp_id}, {month_year_str}")
                 messagebox.showinfo("Thành công", "Cập nhật lương thành công!")
                 popup.destroy()
                 self.load_salary_data(

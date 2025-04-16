@@ -11,8 +11,8 @@ def connect_to_database():
     try:
         conn = mysql.connector.connect(
             host='localhost',
-            # user='nii',
-            user='root',
+            user='nii',
+            # user='root',
             password='12345678',
             database='Face_Recognition'
         )
@@ -78,10 +78,18 @@ def load_departments(cursor):
 # Lấy dữ liệu chấm công
 def get_attendance_by_emp(cursor, emp_id, month=None, year=None):
     try:
+        # query = """
+        #     SELECT DATE_FORMAT(date, '%%d/%%m/%%Y') as date, 
+        #            TIME_FORMAT(check_in, '%%H:%%i') as check_in, 
+        #            TIME_FORMAT(check_out, '%%H:%%i') as check_out, 
+        #            work_hours, overtime_hours 
+        #     FROM Attendance 
+        #     WHERE emp_id = %s
+        # """
         query = """
-            SELECT DATE_FORMAT(date, '%%d/%%m/%%Y') as date, 
-                   TIME_FORMAT(check_in, '%%H:%%i') as check_in, 
-                   TIME_FORMAT(check_out, '%%H:%%i') as check_out, 
+            SELECT DATE_FORMAT(date, '%d/%m/%Y') as date, 
+                   TIME_FORMAT(check_in, '%H:%i') as check_in, 
+                   TIME_FORMAT(check_out, '%H:%i') as check_out, 
                    work_hours, overtime_hours 
             FROM Attendance 
             WHERE emp_id = %s
@@ -96,6 +104,9 @@ def get_attendance_by_emp(cursor, emp_id, month=None, year=None):
             params.append(year)
 
         query += " ORDER BY date DESC"
+
+        print(f"In employee, get_attendance_by_emp, query: {query}")
+
         cursor.execute(query, tuple(params))
         return cursor.fetchall()
     except mysql.connector.Error as err:
@@ -104,8 +115,14 @@ def get_attendance_by_emp(cursor, emp_id, month=None, year=None):
 # Lấy dữ liệu lương
 def get_salary_data(cursor, emp_id, month=None, year=None):
     try:
+        # query = """
+        #     SELECT DATE_FORMAT(month_year, '%%m/%%Y') as month_year, 
+        #            base_salary, time_salary, overtime_salary
+        #     FROM Payroll 
+        #     WHERE emp_id = %s
+        # """
         query = """
-            SELECT DATE_FORMAT(month_year, '%%m/%%Y') as month_year, 
+            SELECT DATE_FORMAT(month_year, '%m/%Y') as month_year, 
                    base_salary, time_salary, overtime_salary
             FROM Payroll 
             WHERE emp_id = %s
@@ -194,7 +211,7 @@ def update_employee(cursor, conn, emp_id, last_name, first_name, dep_id, email, 
 def delete_employee(cursor, conn, emp_id):
     try:
         # Xóa bản ghi trong bảng `users` trước
-        cursor.execute("DELETE FROM users WHERE emp_id = %s", (emp_id,))
+        cursor.execute("DELETE FROM Users WHERE emp_id = %s", (emp_id,))
         conn.commit()
 
         # Sau đó xóa nhân viên trong bảng `employees`
