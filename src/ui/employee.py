@@ -367,6 +367,41 @@ class HRMApp:
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
         img_dir = os.path.join(BASE_DIR, "..", "img")
         excel_img_path = os.path.join(img_dir, "excel.png")
+        reset_img_path = os.path.join(img_dir, "reset.png")
+
+        # Tải icon cho nút Reset
+        if os.path.exists(reset_img_path):
+            reset_img = Image.open(reset_img_path).resize((22, 22), Image.Resampling.LANCZOS)
+            self.reset_icon = ImageTk.PhotoImage(reset_img)
+        else:
+            print(f"Không tìm thấy icon: reset.png")
+            self.reset_icon = None
+
+        # Tải icon cho nút Excel
+        if os.path.exists(excel_img_path):
+            excel_img = Image.open(excel_img_path).resize((22, 22), Image.Resampling.LANCZOS)
+            self.excel_icon = ImageTk.PhotoImage(excel_img)
+        else:
+            self.excel_icon = None
+
+        # Nút Reset
+        reset_button = tk.Button(
+            inner_f,
+            text="Reset",
+            image=self.reset_icon,
+            compound=tk.TOP,
+            command=self.reset_attendance_filters,  # Hàm xử lý reset
+            bg="#fff",
+            bd=0,
+            width=50,
+            height=50,
+            font=("Times New Roman", 9),
+            relief="flat",
+            activebackground="#ff6666"  # Màu khi hover
+        )
+        if self.reset_icon:
+            reset_button.image = self.reset_icon
+        reset_button.pack(side=tk.LEFT, padx=10)
 
         if os.path.exists(excel_img_path):
             excel_img = Image.open(excel_img_path).resize((22, 22), Image.Resampling.LANCZOS)
@@ -439,6 +474,18 @@ class HRMApp:
             self.tree.column(column, width=180, anchor="center")
         self.tree.pack(fill="both", expand=True, padx=1, pady=1)
 
+        self.load_attendance_data()
+
+    def reset_attendance_filters(self):
+        # Reset các Combobox về giá trị mặc định
+        self.year_filter_attendance.set("Tất cả")
+        self.month_filter_attendance.set("Tất cả")
+        
+        # Xóa dữ liệu hiện tại trong bảng
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        
+        # Tải lại dữ liệu gốc
         self.load_attendance_data()
 
     # Load dữ liệu chấm công
@@ -515,6 +562,15 @@ class HRMApp:
         img_dir = os.path.join(BASE_DIR, "..", "img")
         excel_img_path = os.path.join(img_dir, "excel.png")
         salary_img_path = os.path.join(img_dir, "salary.png")
+        reset_img_path = os.path.join(img_dir, "reset.png")  
+        
+        # Tải icon cho nút Reset
+        if os.path.exists(reset_img_path):
+            reset_img = Image.open(reset_img_path).resize((22, 22), Image.Resampling.LANCZOS)
+            self.reset_icon = ImageTk.PhotoImage(reset_img)
+        else:
+            print(f"Không tìm thấy icon: reset.png")
+            self.reset_icon = None
 
         if os.path.exists(excel_img_path):
             excel_img = Image.open(excel_img_path).resize((22, 22), Image.Resampling.LANCZOS)
@@ -527,6 +583,26 @@ class HRMApp:
             self.salary_icon = ImageTk.PhotoImage(salary_img)
         else:
             self.salary_icon = None
+
+        # Nút Reset
+        reset_button = tk.Button(
+            inner_f,
+            text="Reset",
+            image=self.reset_icon,
+            compound=tk.TOP,
+            command=self.reset_salary_filters,  # Hàm xử lý reset
+            bg="#fff",
+            bd=0,
+            width=50,
+            height=50,
+            font=("Times New Roman", 9),
+            relief="flat",
+            activebackground="#ff6666"  # Màu khi hover
+        )
+        if self.reset_icon:
+            reset_button.image = self.reset_icon
+        reset_button.pack(side=tk.LEFT, padx=10)
+
 
         excel_button = tk.Button(
             inner_f,
@@ -615,6 +691,17 @@ class HRMApp:
         self.salary_tree.pack(fill=tk.BOTH, expand=True, padx=1, pady=1)
         self.load_salary_data()
 
+    def reset_salary_filters(self):
+        # Reset các Combobox về giá trị mặc định
+        self.year_filter_salary.set("Tất cả")
+        self.month_filter_salary.set("Tất cả")
+        
+        # Xóa dữ liệu hiện tại trong bảng
+        for item in self.salary_tree.get_children():
+            self.salary_tree.delete(item)
+        
+        # Tải lại dữ liệu gốc
+        self.load_salary_data()
 
     #  Load dữ liệu lương
     def load_salary_data(self, month=None, year=None):
