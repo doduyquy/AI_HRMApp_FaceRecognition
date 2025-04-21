@@ -68,8 +68,8 @@ class ManagerApp:
         self.create_sidebar_content()
 
         # Tạo khu vực nội dung
-        self.content_area = tk.Frame(self.content_frame, bg=self.bg_color)
-        self.content_area.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        # self.content_area = tk.Frame(self.content_frame, bg=self.bg_color)
+        # self.content_area.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
 
         self.on_menu_click("Nhân Sự")
     def create_sidebar_content(self):
@@ -122,10 +122,10 @@ class ManagerApp:
         menu_f.pack(fill=tk.BOTH, expand=True, pady=10)
 
         menu_items = [
-            ("Nhân Sự", "people.png"),
-            ("Chấm công", "check.png"),
-            ("Lương", "salary.png"),
-            ("Thống Kê", "stats.png"),
+            ("Nhân Sự", "people1.png"),
+            ("Chấm công", "check1.png"),
+            ("Lương", "salary1.png"),
+            ("Thống Kê", "stats1.png"),
             ("Đăng xuất", "logout.png")
         ]
 

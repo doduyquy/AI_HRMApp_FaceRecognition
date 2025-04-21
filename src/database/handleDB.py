@@ -333,7 +333,7 @@ handle = DatabaseHandler()
 def connect_to_database():
     try:
         db = mysql.connector.connect(
-            user='root',
+            user='nii',
             # password='Ngoctu280105@',
             password='',
             host='localhost',

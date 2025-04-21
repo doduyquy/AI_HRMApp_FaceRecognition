@@ -121,10 +121,10 @@ class ITApp:
         menu_f.pack_propagate(False)
 
         menu_items = [
-            ("Tài khoản", "people1.png"),
-            ("Phân quyền", "permission1.png"),
-            ("Phòng ban", "department1.png"),
-            ("Dữ liệu khuôn mặt", "face1.png"),
+            ("Tài khoản", "people.png"),
+            ("Phân quyền", "permission.png"),
+            ("Phòng ban", "department.png"),
+            ("Dữ liệu khuôn mặt", "face.png"),
             ("Đăng xuất", "logout.png")
         ]
 

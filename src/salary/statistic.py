@@ -37,7 +37,7 @@ class StatisticApp:
     def create_ui(self):
         # Tạo canvas chính với thanh cuộn
         self.canvas = tk.Canvas(self.parent, bg=self.bg_color, highlightthickness=0)
-        self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, pady=0)
 
         self.scrollbar = ttk.Scrollbar(self.parent, orient=tk.VERTICAL, command=self.canvas.yview)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -53,42 +53,14 @@ class StatisticApp:
         self.canvas.bind("<Configure>", self.on_canvas_configure)
         self.canvas.bind_all("<MouseWheel>", self.on_mousewheel)
 
-    def on_frame_configure(self, event=None):
-        if hasattr(self, 'canvas') and self.canvas and self.canvas.winfo_exists():
-            self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-
-    def on_canvas_configure(self, event):
-        if hasattr(self, 'canvas') and self.canvas and self.canvas.winfo_exists():
-            self.canvas.itemconfig(self.canvas_frame, width=event.width)
-
-    def on_mousewheel(self, event):
-        if hasattr(self, 'canvas') and self.canvas and self.canvas.winfo_exists():
-            self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-
-    def get_workdays_in_month(self, year, month):
-        try:
-            start_date = datetime(year, month, 1)
-            last_day = calendar.monthrange(year, month)[1]
-            end_date = datetime(year, month, last_day)
-            workdays = []
-            current_date = start_date
-            while current_date <= end_date:
-                if current_date.weekday() < 5:  # Thứ Hai đến thứ Sáu
-                    workdays.append(current_date.strftime('%Y-%m-%d'))
-                current_date += timedelta(days=1)
-            return workdays
-        except ValueError as e:
-            messagebox.showerror("Lỗi", f"Giá trị ngày không hợp lệ: {e}")
-            return []
-
     def show_statistics(self):
         # Tạo frame chính cho thống kê
         stats_frame = tk.Frame(self.scrollable_frame, bg=self.bg_color)
-        stats_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        stats_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=5)
 
         # Tiêu đề
         title_l = tk.Label(stats_frame, text="Thống Kê Nhân Sự", font=("Times New Roman", 25, "bold"), fg="#333333", bg=self.bg_color)
-        title_l.pack(anchor="center", pady=(10, 20))
+        title_l.pack(anchor="center", pady=(0, 5))
 
         # Frame chứa các thẻ tóm tắt
         summary_cards_frame = tk.Frame(stats_frame, bg=self.bg_color)
@@ -130,6 +102,15 @@ class StatisticApp:
         self.overtime_growth_label = tk.Label(overtime_card, text="Không có dữ liệu kỳ trước", font=("Times New Roman", 10), bg=self.card_bg, fg="#28A745")
         self.overtime_growth_label.pack(pady=(0, 10))
 
+        # Frame chứa biểu đồ
+        chart_frame = tk.Frame(stats_frame, bg=self.bg_color)
+        chart_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+
+        # Tăng kích thước biểu đồ và điều chỉnh tỷ lệ
+        self.fig, self.ax = plt.subplots(figsize=(10, 4), constrained_layout=True)
+        self.canvas_widget = FigureCanvasTkAgg(self.fig, master=chart_frame)
+        self.canvas_widget.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
         # Frame chứa bộ lọc
         filter_frame = tk.Frame(stats_frame, bg=self.bg_color)
         filter_frame.pack(fill=tk.X, pady=(0, 10))
@@ -158,73 +139,48 @@ class StatisticApp:
         top_n_entry.pack(side=tk.LEFT, padx=5)
 
         # Nút Cập nhật
-        refresh_btn = tk.Button(inner_f, text="Cập nhật", command=self.load_statistics, bg="#28A745", fg="white", 
+        refresh_btn = tk.Button(inner_f, text="Cập nhật", command=self.load_statistics, bg="#28A745", fg="white",
                                 font=("Times New Roman", 11, "bold"), relief="flat", activebackground="#218838", cursor="hand2")
         refresh_btn.pack(side=tk.LEFT, padx=10)
         refresh_btn.bind("<Enter>", lambda e: refresh_btn.config(bg="#218838"))
         refresh_btn.bind("<Leave>", lambda e: refresh_btn.config(bg="#28A745"))
 
-        # Frame chứa biểu đồ
-        chart_frame = tk.Frame(stats_frame, bg=self.bg_color)
-        chart_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+        # Frame chứa bảng thống kê tổng hợp
+        combined_frame = tk.Frame(stats_frame, bg=self.bg_color)
+        combined_frame.pack(fill=tk.BOTH, expand=True, pady=10)
 
-        # Tăng kích thước biểu đồ và điều chỉnh tỷ lệ
-        self.fig, self.ax = plt.subplots(figsize=(10, 4), constrained_layout=True)
-        self.canvas_widget = FigureCanvasTkAgg(self.fig, master=chart_frame)
-        self.canvas_widget.get_tk_widget().pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        # Tiêu đề cho bảng tổng hợp
+        combined_label = tk.Label(combined_frame, text="Thống Kê Lương và Chấm Công", 
+                                  font=("Times New Roman", 14, "bold"), bg=self.bg_color, fg="#0276f7")
+        combined_label.pack(anchor="w", pady=(0, 5))
 
-        # Frame chứa bảng lương cao nhất (Đặt trước bảng chấm công)
-        top_salary_frame = tk.Frame(stats_frame, bg=self.bg_color)
-        top_salary_frame.pack(fill=tk.BOTH, expand=True, pady=10)
-
-        # Thêm tiêu đề cho bảng Top nhân viên có lương cao nhất
-        top_salary_label = tk.Label(top_salary_frame, text="Top nhân viên có lương cao nhất", 
-                                    font=("Times New Roman", 14, "bold"), bg=self.bg_color, fg="#0276f7")
-        top_salary_label.pack(anchor="w", pady=(0, 5))
-
-        top_scroll_y = ttk.Scrollbar(top_salary_frame, orient="vertical")
-        self.top_salary_tree = ttk.Treeview(top_salary_frame, columns=("STT", "Mã NV", "Tên", "Lương"), 
-                                            show="headings", height=3, yscrollcommand=top_scroll_y.set)
-        top_scroll_y.config(command=self.top_salary_tree.yview)
-        top_scroll_y.pack(side=tk.RIGHT, fill=tk.Y)
-        self.top_salary_tree.pack(fill=tk.BOTH, expand=True)
-
-        # Cấu hình cột cho bảng lương cao nhất
-        self.top_salary_tree.heading("STT", text="STT")
-        self.top_salary_tree.heading("Mã NV", text="Mã Nhân Viên")
-        self.top_salary_tree.heading("Tên", text="Tên Nhân Viên")
-        self.top_salary_tree.heading("Lương", text="Tổng Lương")
-        self.top_salary_tree.column("STT", width=50, anchor="center")
-        self.top_salary_tree.column("Mã NV", width=100, anchor="center")
-        self.top_salary_tree.column("Tên", width=200, anchor="w")
-        self.top_salary_tree.column("Lương", width=150, anchor="center")
-
-        # Frame chứa bảng chấm công (Đặt sau bảng lương cao nhất)
-        attendance_frame = tk.Frame(stats_frame, bg=self.bg_color)
-        attendance_frame.pack(fill=tk.BOTH, expand=True, pady=10)
-
-        scroll_y = ttk.Scrollbar(attendance_frame, orient="vertical")
-        self.attendance_tree = ttk.Treeview(attendance_frame, columns=("STT", "Mã NV", "Tên", "Đúng giờ", "Trễ", "Vắng"), 
-                                            show="headings", height=5, yscrollcommand=scroll_y.set)
-        scroll_y.config(command=self.attendance_tree.yview)
+        # Thanh cuộn cho bảng tổng hợp
+        scroll_y = ttk.Scrollbar(combined_frame, orient="vertical")
+        self.combined_tree = ttk.Treeview(combined_frame, 
+                                          columns=("STT", "Mã NV", "Tên NV", "Tổng Lương", "Đúng Giờ", "Trễ", "Vắng"), 
+                                          show="headings", height=8, yscrollcommand=scroll_y.set)
+        scroll_y.config(command=self.combined_tree.yview)
         scroll_y.pack(side=tk.RIGHT, fill=tk.Y)
-        self.attendance_tree.pack(fill=tk.BOTH, expand=True)
+        self.combined_tree.pack(fill=tk.BOTH, expand=True)
 
-        # Cấu hình cột cho bảng chấm công
-        self.attendance_tree.heading("STT", text="STT")
-        self.attendance_tree.heading("Mã NV", text="Mã Nhân Viên")
-        self.attendance_tree.heading("Tên", text="Tên Nhân Viên")
-        self.attendance_tree.heading("Đúng giờ", text="Đúng Giờ")
-        self.attendance_tree.heading("Trễ", text="Trễ")
-        self.attendance_tree.heading("Vắng", text="Vắng")
-        self.attendance_tree.column("STT", width=50, anchor="center")
-        self.attendance_tree.column("Mã NV", width=100, anchor="center")
-        self.attendance_tree.column("Tên", width=200, anchor="w")
-        self.attendance_tree.column("Đúng giờ", width=100, anchor="center")
-        self.attendance_tree.column("Trễ", width=100, anchor="center")
-        self.attendance_tree.column("Vắng", width=100, anchor="center")
+        # Cấu hình cột cho bảng tổng hợp
+        self.combined_tree.heading("STT", text="STT")
+        self.combined_tree.heading("Mã NV", text="Mã Nhân Viên")
+        self.combined_tree.heading("Tên NV", text="Tên Nhân Viên")
+        self.combined_tree.heading("Tổng Lương", text="Tổng Lương")
+        self.combined_tree.heading("Đúng Giờ", text="Đúng Giờ")
+        self.combined_tree.heading("Trễ", text="Trễ")
+        self.combined_tree.heading("Vắng", text="Vắng")
+        self.combined_tree.column("STT", width=50, anchor="center")
+        self.combined_tree.column("Mã NV", width=100, anchor="center")
+        self.combined_tree.column("Tên NV", width=200, anchor="w")
+        self.combined_tree.column("Tổng Lương", width=150, anchor="center")
+        self.combined_tree.column("Đúng Giờ", width=100, anchor="center")
+        self.combined_tree.column("Trễ", width=100, anchor="center")
+        self.combined_tree.column("Vắng", width=100, anchor="center")
 
-        self.attendance_tree.bind("<Double-1>", self.show_attendance_details)
+        # Gắn sự kiện nhấp đúp để xem chi tiết chấm công
+        self.combined_tree.bind("<Double-1>", self.show_attendance_details)
 
         # Cấu hình style cho Treeview
         style = ttk.Style()
@@ -232,89 +188,6 @@ class StatisticApp:
         style.configure("Treeview.Heading", font=("Times New Roman", 11, "bold"), background="#9fd7f9", foreground="#000")
 
         self.load_statistics()
-
-    def show_attendance_details(self, event):
-        item = self.attendance_tree.selection()
-        if not item:
-            return
-
-        emp_id = self.attendance_tree.item(item, "values")[1]
-        month_str = self.month_var.get()
-        year_str = self.year_var.get()
-
-        # Nếu chọn "Tất cả", lấy toàn bộ dữ liệu
-        if month_str == "Tất cả" or year_str == "Tất cả":
-            self.cursor.execute("""
-                SELECT date, check_in
-                FROM Attendance
-                WHERE emp_id = %s
-            """, (emp_id,))
-            attendance_records = self.cursor.fetchall()
-
-            # Lấy tất cả các ngày làm việc trong khoảng thời gian có dữ liệu
-            if attendance_records:
-                dates = [record['date'] for record in attendance_records if record['date']]
-                if dates:
-                    min_date = min(dates)
-                    max_date = max(dates)
-                    workdays = []
-                    current_date = min_date
-                    while current_date <= max_date:
-                        if current_date.weekday() < 5:
-                            workdays.append(current_date.strftime('%Y-%m-%d'))
-                        current_date += timedelta(days=1)
-                else:
-                    workdays = []
-            else:
-                workdays = []
-        else:
-            try:
-                month = int(month_str)
-                year = int(year_str)
-            except ValueError:
-                messagebox.showerror("Lỗi", "Tháng hoặc năm không hợp lệ!")
-                return
-
-            start_date = datetime(year, month, 1)
-            end_date = datetime(year, month, calendar.monthrange(year, month)[1])
-
-            self.cursor.execute("""
-                SELECT date, check_in
-                FROM Attendance
-                WHERE emp_id = %s AND date BETWEEN %s AND %s
-            """, (emp_id, start_date, end_date))
-            attendance_records = self.cursor.fetchall()
-
-            workdays = self.get_workdays_in_month(year, month)
-
-        # Tính toán ngày vắng, ngày trễ
-        attended_dates = [record['date'].strftime('%Y-%m-%d') for record in attendance_records if record['date']]
-        absent_days = [day for day in workdays if day not in attended_dates]
-        late_days = [record['date'].strftime('%Y-%m-%d') for record in attendance_records 
-                     if record['check_in'] and record['check_in'].time() > datetime.strptime('08:00:00', '%H:%M:%S').time()]
-
-        # Hiển thị chi tiết
-        detail_window = tk.Toplevel(self.parent)
-        detail_window.title(f"Chi Tiết Chấm Công - Mã NV: {emp_id}")
-        detail_window.geometry("500x400")
-        detail_window.configure(bg="#fff")
-
-        tk.Label(detail_window, text=f"Chi Tiết Chấm Công - Mã NV: {emp_id}", font=("Times New Roman", 12, "bold"), bg="#fff").pack(pady=10)
-
-        details_frame = tk.Frame(detail_window, bg="#fff")
-        details_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-
-        tk.Label(details_frame, text=f"Ngày Trễ ({len(late_days)}):", bg="#fff", font=("Times New Roman", 11)).pack(anchor="w")
-        late_text = tk.Text(details_frame, height=3, width=50, font=("Times New Roman", 10))
-        late_text.insert(tk.END, "\n".join(late_days) or "Không có")
-        late_text.config(state="disabled")
-        late_text.pack(fill=tk.X, pady=5)
-
-        tk.Label(details_frame, text=f"Ngày Vắng ({len(absent_days)}):", bg="#fff", font=("Times New Roman", 11)).pack(anchor="w")
-        absent_text = tk.Text(details_frame, height=8, width=50, font=("Times New Roman", 10))
-        absent_text.insert(tk.END, "\n".join(absent_days) or "Không có")
-        absent_text.config(state="disabled")
-        absent_text.pack(fill=tk.X, pady=5)
 
     def load_statistics(self):
         if not self.cursor:
@@ -379,7 +252,6 @@ class StatisticApp:
             prev_workdays = self.get_workdays_in_month(prev_year, prev_month) if prev_start_date else []
             prev_total_workdays = len(prev_workdays)
         else:
-            # Nếu chọn "Tất cả", tính tổng ngày làm việc dựa trên dữ liệu có sẵn
             self.cursor.execute("SELECT MIN(date), MAX(date) FROM Attendance")
             date_range = self.cursor.fetchone()
             if date_range['MIN(date)'] and date_range['MAX(date)']:
@@ -392,7 +264,6 @@ class StatisticApp:
                         workdays.append(current_date.strftime('%Y-%m-%d'))
                     current_date += timedelta(days=1)
                 total_workdays = len(workdays)
-                # Không có dữ liệu kỳ trước để so sánh
                 prev_total_workdays = 0
             else:
                 total_workdays = 0
@@ -429,7 +300,7 @@ class StatisticApp:
                 FROM Payroll
             """)
             current_total_salary = self.cursor.fetchone()['total_salary'] or 0
-            prev_total_salary = 0  # Không so sánh kỳ trước khi chọn "Tất cả"
+            prev_total_salary = 0
 
         self.total_salary_label.config(text=f"{current_total_salary:,.0f} VNĐ")
         if prev_total_salary > 0:
@@ -489,35 +360,48 @@ class StatisticApp:
             fg_color = "#666"
         self.overtime_growth_label.config(text=overtime_growth_text, fg=fg_color)
 
-        # Cập nhật attendance_tree
-        for item in self.attendance_tree.get_children():
-            self.attendance_tree.delete(item)
+        # Cập nhật combined_tree
+        for item in self.combined_tree.get_children():
+            self.combined_tree.delete(item)
 
         if start_date and end_date:
             self.cursor.execute("""
-                SELECT e.emp_id, e.first_name, e.last_name,
-                       SUM(CASE WHEN TIME(a.check_in) <= '08:00:00' THEN 1 ELSE 0 END) AS on_time,
-                       SUM(CASE WHEN TIME(a.check_in) > '08:00:00' THEN 1 ELSE 0 END) AS late,
-                       COUNT(DISTINCT a.date) AS attended_days
+                SELECT 
+                    e.emp_id, 
+                    e.first_name, 
+                    e.last_name,
+                    SUM(CASE WHEN TIME(a.check_in) <= '08:00:00' THEN 1 ELSE 0 END) AS on_time,
+                    SUM(CASE WHEN TIME(a.check_in) > '08:00:00' THEN 1 ELSE 0 END) AS late,
+                    COUNT(DISTINCT a.date) AS attended_days,
+                    COALESCE(SUM(p.base_salary + p.overtime_salary), 0) AS total_salary
                 FROM Employees e
                 LEFT JOIN Attendance a ON e.emp_id = a.emp_id AND a.date BETWEEN %s AND %s
+                LEFT JOIN Payroll p ON e.emp_id = p.emp_id AND p.month_year = %s
                 GROUP BY e.emp_id, e.first_name, e.last_name
-            """, (start_date, end_date))
-            attendance_data = self.cursor.fetchall()
+                ORDER BY total_salary DESC
+                LIMIT %s
+            """, (start_date, end_date, start_date.strftime('%Y-%m-01'), top_n))
+            combined_data = self.cursor.fetchall()
             workdays = self.get_workdays_in_month(year, month)
             total_workdays = len(workdays)
         else:
             self.cursor.execute("""
-                SELECT e.emp_id, e.first_name, e.last_name,
-                       SUM(CASE WHEN TIME(a.check_in) <= '08:00:00' THEN 1 ELSE 0 END) AS on_time,
-                       SUM(CASE WHEN TIME(a.check_in) > '08:00:00' THEN 1 ELSE 0 END) AS late,
-                       COUNT(DISTINCT a.date) AS attended_days
+                SELECT 
+                    e.emp_id, 
+                    e.first_name, 
+                    e.last_name,
+                    SUM(CASE WHEN TIME(a.check_in) <= '08:00:00' THEN 1 ELSE 0 END) AS on_time,
+                    SUM(CASE WHEN TIME(a.check_in) > '08:00:00' THEN 1 ELSE 0 END) AS late,
+                    COUNT(DISTINCT a.date) AS attended_days,
+                    COALESCE(SUM(p.base_salary + p.overtime_salary), 0) AS total_salary
                 FROM Employees e
                 LEFT JOIN Attendance a ON e.emp_id = a.emp_id
+                LEFT JOIN Payroll p ON e.emp_id = p.emp_id
                 GROUP BY e.emp_id, e.first_name, e.last_name
-            """)
-            attendance_data = self.cursor.fetchall()
-            # Tính tổng ngày làm việc dựa trên dữ liệu
+                ORDER BY total_salary DESC
+                LIMIT %s
+            """, (top_n,))
+            combined_data = self.cursor.fetchall()
             self.cursor.execute("SELECT MIN(date), MAX(date) FROM Attendance")
             date_range = self.cursor.fetchone()
             if date_range['MIN(date)'] and date_range['MAX(date)']:
@@ -533,47 +417,26 @@ class StatisticApp:
             else:
                 total_workdays = 0
 
-        for idx, row in enumerate(attendance_data, 1):
-            full_name = f"{row['last_name']} {row['first_name']}"
-            on_time = row['on_time'] or 0
-            late = row['late'] or 0
-            attended_days = row['attended_days'] or 0
-            absent = total_workdays - attended_days
-            absent = max(absent, 0)
-            self.attendance_tree.insert("", "end", values=(idx, row['emp_id'], full_name, on_time, late, absent))
-
-        # Cập nhật top_salary_tree
-        for item in self.top_salary_tree.get_children():
-            self.top_salary_tree.delete(item)
-
-        if start_date and end_date:
-            self.cursor.execute("""
-                SELECT e.emp_id, e.first_name, e.last_name, SUM(p.base_salary + p.overtime_salary) AS total_salary
-                FROM Employees e
-                JOIN Payroll p ON e.emp_id = p.emp_id
-                WHERE p.month_year = %s
-                GROUP BY e.emp_id, e.first_name, e.last_name
-                ORDER BY total_salary DESC
-                LIMIT %s
-            """, (start_date.strftime('%Y-%m-01'), top_n))
-        else:
-            self.cursor.execute("""
-                SELECT e.emp_id, e.first_name, e.last_name, SUM(p.base_salary + p.overtime_salary) AS total_salary
-                FROM Employees e
-                JOIN Payroll p ON e.emp_id = p.emp_id
-                GROUP BY e.emp_id, e.first_name, e.last_name
-                ORDER BY total_salary DESC
-                LIMIT %s
-            """, (top_n,))
-
-        top_salaries = self.cursor.fetchall()
-
-        if top_salaries:
-            for idx, row in enumerate(top_salaries, 1):
+        if combined_data:
+            for idx, row in enumerate(combined_data, 1):
                 full_name = f"{row['last_name']} {row['first_name']}"
-                self.top_salary_tree.insert("", "end", values=(idx, row['emp_id'], full_name, f"{row['total_salary']:,.0f} VNĐ"))
+                on_time = row['on_time'] or 0
+                late = row['late'] or 0
+                attended_days = row['attended_days'] or 0
+                absent = total_workdays - attended_days
+                absent = max(absent, 0)
+                total_salary = row['total_salary'] or 0
+                self.combined_tree.insert("", "end", values=(
+                    idx, 
+                    row['emp_id'], 
+                    full_name, 
+                    f"{total_salary:,.0f} VNĐ", 
+                    on_time, 
+                    late, 
+                    absent
+                ))
         else:
-            self.top_salary_tree.insert("", "end", values=("", "", "Không có dữ liệu", ""))
+            self.combined_tree.insert("", "end", values=("", "", "Không có dữ liệu", "", "", "", ""))
 
         # Cập nhật biểu đồ
         if year_str == "Tất cả":
@@ -622,86 +485,131 @@ class StatisticApp:
             self.ax.set_ylabel("Tổng Lương (VNĐ)", fontsize=10)
         self.canvas_widget.draw()
 
-    def destroy(self):
-        if self.destroyed:
-            print("StatisticApp đã được hủy trước đó, bỏ qua.")
+    def show_attendance_details(self, event):
+        item = self.combined_tree.selection()
+        if not item:
             return
 
-        print("Bắt đầu hủy StatisticApp")
-        try:
-            if hasattr(self, 'canvas') and self.canvas is not None and self.canvas.winfo_exists():
-                self.canvas.unbind_all("<MouseWheel>")
-                print("Đã gỡ sự kiện MouseWheel")
+        emp_id = self.combined_tree.item(item, "values")[1]
+        month_str = self.month_var.get()
+        year_str = self.year_var.get()
 
-            if hasattr(self, 'fig') and self.fig is not None:
-                plt.close(self.fig)
-                print("Đã đóng fig")
-                self.fig = None
+        if month_str == "Tất cả" or year_str == "Tất cả":
+            self.cursor.execute("""
+                SELECT date, check_in
+                FROM Attendance
+                WHERE emp_id = %s
+            """, (emp_id,))
+            attendance_records = self.cursor.fetchall()
 
-            if hasattr(self, 'attendance_tree') and self.attendance_tree is not None and self.attendance_tree.winfo_exists():
-                self.attendance_tree.destroy()
-                print("Đã hủy attendance_tree")
-            if hasattr(self, 'top_salary_tree') and self.top_salary_tree is not None and self.top_salary_tree.winfo_exists():
-                self.top_salary_tree.destroy()
-                print("Đã hủy top_salary_tree")
-            if hasattr(self, 'canvas_widget') and self.canvas_widget is not None and self.canvas_widget.get_tk_widget().winfo_exists():
-                self.canvas_widget.get_tk_widget().destroy()
-                print("Đã hủy canvas_widget")
+            if attendance_records:
+                dates = [record['date'] for record in attendance_records if record['date']]
+                if dates:
+                    min_date = min(dates)
+                    max_date = max(dates)
+                    workdays = []
+                    current_date = min_date
+                    while current_date <= max_date:
+                        if current_date.weekday() < 5:
+                            workdays.append(current_date.strftime('%Y-%m-%d'))
+                        current_date += timedelta(days=1)
+                else:
+                    workdays = []
+            else:
+                workdays = []
+        else:
+            try:
+                month = int(month_str)
+                year = int(year_str)
+            except ValueError:
+                messagebox.showerror("Lỗi", "Tháng hoặc năm không hợp lệ!")
+                return
 
-            if hasattr(self, 'scrollable_frame') and self.scrollable_frame is not None and self.scrollable_frame.winfo_exists():
-                for widget in self.scrollable_frame.winfo_children():
-                    if widget.winfo_exists():
-                        widget.destroy()
-                        print(f"Đã hủy widget con của scrollable_frame: {widget}")
-                self.scrollable_frame.destroy()
-                print("Đã hủy scrollable_frame")
+            start_date = datetime(year, month, 1)
+            end_date = datetime(year, month, calendar.monthrange(year, month)[1])
 
-            if hasattr(self, 'canvas') and self.canvas is not None and self.canvas.winfo_exists():
-                self.canvas.destroy()
-                print("Đã hủy canvas")
-            if hasattr(self, 'scrollbar') and self.scrollbar is not None and self.scrollbar.winfo_exists():
-                self.scrollbar.destroy()
-                print("Đã hủy scrollbar")
+            self.cursor.execute("""
+                SELECT date, check_in
+                FROM Attendance
+                WHERE emp_id = %s AND date BETWEEN %s AND %s
+            """, (emp_id, start_date, end_date))
+            attendance_records = self.cursor.fetchall()
 
-            if hasattr(self, 'cursor') and self.cursor is not None:
-                try:
-                    self.cursor.close()
-                    print("Đã đóng cursor")
-                except:
-                    print("Không thể đóng cursor (có thể đã đóng trước đó)")
-            if hasattr(self, 'conn') and self.conn is not None and self.conn.is_connected():
-                try:
-                    self.conn.close()
-                    print("Đã đóng kết nối cơ sở dữ liệu")
-                except:
-                    print("Không thể đóng kết nối DB (có thể đã đóng trước đó)")
+            workdays = self.get_workdays_in_month(year, month)
 
-            self.canvas = None
-            self.scrollable_frame = None
-            self.canvas_widget = None
-            self.attendance_tree = None
-            self.top_salary_tree = None
-            self.scrollbar = None
-            self.cursor = None
-            self.conn = None
+        attended_dates = [record['date'].strftime('%Y-%m-%d') for record in attendance_records if record['date']]
+        absent_days = [day for day in workdays if day not in attended_dates]
+        late_days = [record['date'].strftime('%Y-%m-%d') for record in attendance_records 
+                     if record['check_in'] and record['check_in'].time() > datetime.strptime('08:00:00', '%H:%M:%S').time()]
 
+        detail_window = tk.Toplevel(self.parent)
+        detail_window.title(f"Chi Tiết Chấm Công - Mã NV: {emp_id}")
+        detail_window.geometry("500x400")
+        detail_window.configure(bg="#fff")
+
+        tk.Label(detail_window, text=f"Chi Tiết Chấm Công - Mã NV: {emp_id}", font=("Times New Roman", 12, "bold"), bg="#fff").pack(pady=10)
+
+        details_frame = tk.Frame(detail_window, bg="#fff")
+        details_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        tk.Label(details_frame, text=f"Ngày Trễ ({len(late_days)}):", bg="#fff", font=("Times New Roman", 11)).pack(anchor="w")
+        late_text = tk.Text(details_frame, height=3, width=50, font=("Times New Roman", 10))
+        late_text.insert(tk.END, "\n".join(late_days) or "Không có")
+        late_text.config(state="disabled")
+        late_text.pack(fill=tk.X, pady=5)
+
+        tk.Label(details_frame, text=f"Ngày Vắng ({len(absent_days)}):", bg="#fff", font=("Times New Roman", 11)).pack(anchor="w")
+        absent_text = tk.Text(details_frame, height=8, width=50, font=("Times New Roman", 10))
+        absent_text.insert(tk.END, "\n".join(absent_days) or "Không có")
+        absent_text.config(state="disabled")
+        absent_text.pack(fill=tk.X, pady=5)
+
+    def on_frame_configure(self, event):
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+    def on_canvas_configure(self, event):
+        canvas_width = event.width
+        self.canvas.itemconfig(self.canvas_frame, width=canvas_width)
+
+    def on_mousewheel(self, event):
+        self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+    def get_workdays_in_month(self, year, month):
+        start_date = datetime(year, month, 1)
+        last_day = calendar.monthrange(year, month)[1]
+        end_date = datetime(year, month, last_day)
+        workdays = []
+        current_date = start_date
+        while current_date <= end_date:
+            if current_date.weekday() < 5:  # Thứ 2 đến Thứ 6
+                workdays.append(current_date.strftime('%Y-%m-%d'))
+            current_date += timedelta(days=1)
+        return workdays
+
+    def destroy(self):
+        if not self.destroyed:
             self.destroyed = True
-            print("Kết thúc hủy StatisticApp")
-
-        except Exception as e:
-            print(f"Lỗi trong destroy StatisticApp: {e}")
+            try:
+                self.canvas.destroy()
+                self.scrollbar.destroy()
+                plt.close(self.fig)
+                self.parent.destroy()
+                self.toplevel.destroy()  # Đảm bảo đóng cửa sổ chính
+            except Exception as e:
+                print(f"Error during destroy: {e}")
 
     def on_close(self):
-        print("Người dùng nhấn nút đóng cửa sổ")
-        try:
+        # Hiển thị hộp thoại xác nhận (tùy chọn)
+        if messagebox.askyesno("Xác nhận", "Bạn có chắc muốn thoát ứng dụng?"):
             self.destroy()
-            if self.toplevel.winfo_exists():
-                self.toplevel.destroy()
-            print("Đã đóng cửa sổ gốc")
-            sys.exit(0)
-        except Exception as e:
-            print(f"Lỗi trong on_close: {e}")
-            sys.exit(1)
+            # Đóng toàn bộ ứng dụng
+            try:
+                if "root" in globals():
+                    globals()["root"].destroy()
+                else:
+                    self.toplevel.quit()  # Thoát ứng dụng nếu không có root toàn cục
+            except Exception as e:
+                print(f"Error during on_close: {e}")
 
 if __name__ == "__main__":
     root = tk.Tk()
