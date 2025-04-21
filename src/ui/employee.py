@@ -125,10 +125,10 @@ class HRMApp:
         menu_f.pack(fill=tk.BOTH, expand=True, pady=10)
 
         menu_items = [
-            ("Hồ sơ", "profile.png"),
-            ("Chấm công", "check.png"),
-            ("Xem bảng lương", "salary.png"),
-            ("Đăng xuất", "logout.png")
+            ("Hồ sơ", "profile1.png"),
+            ("Chấm công", "check1.png"),
+            ("Xem bảng lương", "salary1.png"),
+            ("Đăng xuất", "logout1.png")
         ]
 
         for item, icon_name in menu_items:
@@ -622,23 +622,23 @@ class HRMApp:
             excel_button.image = self.excel_icon
         excel_button.pack(side=tk.LEFT, padx=10)
 
-        salary_button = tk.Button(
-            inner_f,
-            text="Lương",
-            image=self.salary_icon,
-            compound=tk.TOP,
-            command=self.start_calculate_salary,
-            bg="#fff",
-            bd=0,
-            width=50,
-            height=50,
-            font=("Times New Roman", 9),
-            relief="flat",
-            activebackground="#ffcc00"
-        )
-        if self.salary_icon:
-            salary_button.image = self.salary_icon
-        salary_button.pack(side=tk.LEFT, padx=10)
+        # salary_button = tk.Button(
+        #     inner_f,
+        #     text="Lương",
+        #     image=self.salary_icon,
+        #     compound=tk.TOP,
+        #     command=self.start_calculate_salary,
+        #     bg="#fff",
+        #     bd=0,
+        #     width=50,
+        #     height=50,
+        #     font=("Times New Roman", 9),
+        #     relief="flat",
+        #     activebackground="#ffcc00"
+        # )
+        # if self.salary_icon:
+        #     salary_button.image = self.salary_icon
+        # salary_button.pack(side=tk.LEFT, padx=10)
 
         # Tạo table_frame để chứa Treeview và thanh cuộn
         table_frame = tk.Frame(salary_frame, bg="#ffffff")

@@ -125,7 +125,7 @@ class ITApp:
             ("Phân quyền", "permission1.png"),
             ("Phòng ban", "department1.png"),
             ("Dữ liệu khuôn mặt", "face1.png"),
-            ("Đăng xuất", "logout.png")
+            ("Đăng xuất", "logout1.png")
         ]
 
         for item, icon_name in menu_items:

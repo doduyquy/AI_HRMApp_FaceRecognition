@@ -125,8 +125,8 @@ class ManagerApp:
             ("Nhân Sự", "people1.png"),
             ("Chấm công", "check1.png"),
             ("Lương", "salary1.png"),
-            ("Thống Kê", "stats1.png"),
-            ("Đăng xuất", "logout.png")
+            ("Thống Kê", "status1.png"),
+            ("Đăng xuất", "logout1.png")
         ]
 
         for item, icon_name in menu_items:
