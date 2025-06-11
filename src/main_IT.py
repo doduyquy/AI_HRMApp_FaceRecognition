@@ -11,6 +11,7 @@ if src_dir not in sys.path:
 if __name__ == "__main__":
     root = tk.Tk()
     app = ITApp(root)
+    # Testing
     root.mainloop()
     
     
