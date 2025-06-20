@@ -14,7 +14,7 @@ print(f"Đường dẫn hiện tại: {current_dir}")
 CASCADE_PATH="../HaarCascade/haarcascade_frontalface_default.xml"
 
 # Model.pb path
-PB_PATH = os.path.abspath(os.path.join(current_dir, "../../Model/20180402-114759.pb"))
+PB_PATH = os.path.abspath(os.path.join(current_dir, "../../src/models/20180402-114759.pb"))
 print(f"Đường dẫn mô hình: {PB_PATH}")
 # pb_path = '../../Model/20180402-114759.pb'
 

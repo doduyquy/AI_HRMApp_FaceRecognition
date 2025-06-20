@@ -1,0 +1,15 @@
+cryptography==45.0.4
+h5py==3.14.0
+imutils==0.5.4
+matplotlib==3.10.3
+mtcnn==1.0.0
+mysql_connector_repackaged==0.3.1
+numpy
+openpyxl==3.1.5
+pandas==2.3.0
+Pillow==11.2.1
+python_bcrypt==0.3.2
+tensorflow==2.19.0
+tkcalendar==1.6.1
+opencv-python
+# python3.12-tk     # tkinter install via apt of Ubuntu 24.04
