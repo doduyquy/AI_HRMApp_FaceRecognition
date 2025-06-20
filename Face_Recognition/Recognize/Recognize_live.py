@@ -13,7 +13,7 @@ print(f"Đường dẫn hiện tại: {current_dir}")
 
 ### Định nghĩa path cho các file đầu vào:
 CASCADE_PATH = "../HaarCascade/haarcascade_frontalface_default.xml"
-PB_PATH = os.path.abspath(os.path.join(current_dir, "../../Model/20180402-114759.pb"))
+PB_PATH = os.path.abspath(os.path.join(current_dir, "../../src/models/20180402-114759.pb"))
 print(f"Đường dẫn mô hình: {PB_PATH}")
 
 # Định nghĩa các thông số cho nhận diện 
